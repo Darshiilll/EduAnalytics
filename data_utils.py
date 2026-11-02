@@ -7,9 +7,15 @@ import pandas as pd
 def load_data():
     df = pd.read_csv("data/students.csv")
 
-    df["average_marks"] = df[
-        ["math_marks", "science_marks", "english_marks"]
-    ].mean(axis=1)
+    subject_columns = [
+        "math_marks",
+        "science_marks",
+        "english_marks",
+        "social_science_marks",
+        "computer_marks"
+    ]
+
+    df["average_marks"] = df[subject_columns].mean(axis=1)
 
     return df
 
