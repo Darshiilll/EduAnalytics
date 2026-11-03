@@ -1,33 +1,28 @@
 
 import streamlit as st
-import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 from data_utils import load_data, apply_styles, show_sidebar
 
 
-# ==================================================
-# 1. PAGE CONFIGURATION
-# ==================================================
+# PAGE CONFIGURATION
 
 st.set_page_config(
     page_title="EduAnalytics | Dashboard",
-    page_icon="🎓",
+    page_icon="E",
     layout="wide"
 )
 
 apply_styles()
 
 df = load_data()
-
 show_sidebar()
 
 
-# ==================================================
-# 2. SUBJECT CONFIGURATION
-# ==================================================
+# CONSTANTS
 
-subject_columns = [
+SUBJECT_COLUMNS = [
     "math_marks",
     "science_marks",
     "english_marks",
@@ -35,7 +30,7 @@ subject_columns = [
     "computer_marks"
 ]
 
-subject_names = {
+SUBJECT_NAMES = {
     "math_marks": "Mathematics",
     "science_marks": "Science",
     "english_marks": "English",
@@ -43,296 +38,349 @@ subject_names = {
     "computer_marks": "Computer"
 }
 
-chart_colors = [
+CHART_COLORS = [
     "#52745A",
     "#91A68A",
     "#C4A779",
-    "#758B9B",
-    "#B58B83"
+    "#AAB9A1",
+    "#D7C8A8"
 ]
 
+TEXT_COLOR = "#252923"
+MUTED_COLOR = "#777D73"
+GRID_COLOR = "#E5E7DF"
 
-# ==================================================
-# 3. DASHBOARD HEADER
-# ==================================================
+
+# CHART STYLING
+
+def style_chart(fig, height=350):
+    fig.update_layout(
+        height=height,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(
+            family="DM Sans, sans-serif",
+            color=TEXT_COLOR,
+            size=12
+        ),
+        margin=dict(l=15, r=25, t=25, b=15),
+        showlegend=False,
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=12,
+            font_family="DM Sans"
+        )
+    )
+
+    fig.update_xaxes(
+        showgrid=False,
+        linecolor=GRID_COLOR,
+        tickfont=dict(color=MUTED_COLOR)
+    )
+
+    fig.update_yaxes(
+        showgrid=True,
+        gridcolor=GRID_COLOR,
+        zeroline=False,
+        tickfont=dict(color=MUTED_COLOR)
+    )
+
+    return fig
+
+
+# DASHBOARD HEADER
 
 st.markdown(
-    '<div class="eyebrow">EDUCATION / OVERVIEW</div>',
+    """
+    <div class="eyebrow">OVERVIEW</div>
+    <h1>Dashboard</h1>
+    <p class="subtitle">
+        Monitor student performance, academic progress,
+        and attendance across all classes.
+    </p>
+    """,
     unsafe_allow_html=True
 )
 
-st.title("Dashboard")
-
-st.markdown(
-    '<p class="subtitle">Student Performance Analysis & Prediction System</p>',
-    unsafe_allow_html=True
-)
-
-st.caption(
-    "Monitor academic performance, attendance and student progress "
-    "through meaningful insights."
-)
-
-st.divider()
+st.markdown("<br>", unsafe_allow_html=True)
 
 
-# ==================================================
-# 4. CALCULATE DASHBOARD METRICS
-# ==================================================
+# KEY PERFORMANCE INDICATORS
 
 total_students = len(df)
 
-average_marks = (
-    df["average_marks"].mean()
-    if total_students > 0 else 0
-)
+average_score = df["average_marks"].mean()
 
 pass_rate = (
-    (df["average_marks"] >= 40).mean() * 100
+    (df["average_marks"] >= 40).sum() / total_students * 100
     if total_students > 0 else 0
 )
 
-average_attendance = (
-    df["attendance"].mean()
-    if total_students > 0 else 0
-)
-
-
-# ==================================================
-# 5. KEY PERFORMANCE INDICATORS
-# ==================================================
+average_attendance = df["attendance"].mean()
 
 st.markdown(
-    '<div class="eyebrow">AT A GLANCE</div>',
+    '<div class="eyebrow">KEY PERFORMANCE INDICATORS</div>',
     unsafe_allow_html=True
 )
 
-st.subheader("Academic Overview")
+k1, k2, k3, k4 = st.columns(4)
 
-col1, col2, col3, col4 = st.columns(4)
+with k1:
+    st.metric("Total Students", f"{total_students:,}")
 
-with col1:
-    st.metric(
-        label="Students Enrolled",
-        value=f"{total_students:,}"
-    )
+with k2:
+    st.metric("Average Score", f"{average_score:.1f}/100")
 
-with col2:
-    st.metric(
-        label="Average Score",
-        value=f"{average_marks:.1f}%"
-    )
+with k3:
+    st.metric("Pass Rate", f"{pass_rate:.1f}%")
 
-with col3:
-    st.metric(
-        label="Pass Rate",
-        value=f"{pass_rate:.1f}%"
-    )
-
-with col4:
-    st.metric(
-        label="Average Attendance",
-        value=f"{average_attendance:.1f}%"
-    )
-
-st.divider()
+with k4:
+    st.metric("Attendance", f"{average_attendance:.1f}%")
 
 
-# ==================================================
-# 6. ACADEMIC PERFORMANCE
-# ==================================================
+st.markdown("<br>", unsafe_allow_html=True)
+
+
+# SUBJECT-WISE PERFORMANCE
 
 st.markdown(
-    '<div class="eyebrow">PERFORMANCE INSIGHTS</div>',
+    '<div class="eyebrow">ACADEMIC PERFORMANCE</div>',
     unsafe_allow_html=True
 )
 
-st.subheader("Academic Performance")
+st.subheader("Subject-wise Performance")
 
-st.caption(
-    "Compare subject averages and understand how different classes perform."
+subject_averages = (
+    df[SUBJECT_COLUMNS]
+    .mean()
+    .rename(index=SUBJECT_NAMES)
+    .reset_index()
 )
 
-left, right = st.columns(2, gap="large")
+subject_averages.columns = ["Subject", "Average Marks"]
 
+# Horizontal bar chart for better readability
+fig_subjects = px.bar(
+    subject_averages,
+    x="Average Marks",
+    y="Subject",
+    orientation="h",
+    color="Subject",
+    color_discrete_sequence=CHART_COLORS,
+    text_auto=".1f"
+)
 
-# ---------- SUBJECT-WISE PERFORMANCE ----------
+fig_subjects.update_traces(
+    marker_line_width=0,
+    textposition="outside",
+    textfont=dict(
+        family="DM Sans",
+        size=12,
+        color=TEXT_COLOR
+    ),
+    cliponaxis=False
+)
 
-with left:
-
-    subject_average = pd.DataFrame({
-        "Subject": [
-            subject_names[column]
-            for column in subject_columns
+fig_subjects.update_layout(
+    yaxis=dict(
+        categoryorder="array",
+        categoryarray=[
+            "Computer",
+            "Social Science",
+            "English",
+            "Science",
+            "Mathematics"
         ],
-        "Average Marks": [
-            df[column].mean()
-            for column in subject_columns
+        title=None
+    ),
+    xaxis=dict(
+        title=None,
+        range=[
+            0,
+            max(100, subject_averages["Average Marks"].max() + 12)
         ]
-    })
+    ),
+    showlegend=False
+)
 
-    fig_subjects = px.bar(
-        subject_average,
-        x="Subject",
-        y="Average Marks",
-        color="Subject",
-        text_auto=".1f",
-        color_discrete_sequence=chart_colors,
-        title="Average Marks by Subject"
-    )
+fig_subjects = style_chart(fig_subjects, height=370)
 
-    fig_subjects.update_layout(
-        paper_bgcolor="#FFFFFF",
-        plot_bgcolor="#FFFFFF",
-        font=dict(
-            family="DM Sans, sans-serif",
-            color="#252923",
-            size=12
-        ),
-        title_font=dict(
-            family="Manrope, sans-serif",
-            size=17,
-            color="#252923"
-        ),
-        showlegend=False,
-        yaxis_range=[0, 100],
-        xaxis_title="",
-        yaxis_title="Average Marks",
-        margin=dict(l=15, r=15, t=55, b=15),
-        bargap=0.4
-    )
+# Reapply axis settings after common styling
+fig_subjects.update_xaxes(
+    title=None,
+    range=[
+        0,
+        max(100, subject_averages["Average Marks"].max() + 12)
+    ],
+    showgrid=True,
+    gridcolor=GRID_COLOR
+)
 
-    fig_subjects.update_traces(
-        textposition="outside",
-        cliponaxis=False
-    )
+fig_subjects.update_yaxes(
+    title=None,
+    showgrid=False,
+    categoryorder="array",
+    categoryarray=[
+        "Computer",
+        "Social Science",
+        "English",
+        "Science",
+        "Mathematics"
+    ]
+)
 
-    st.plotly_chart(
-        fig_subjects,
-        use_container_width=True,
-        config={"displayModeBar": False}
-    )
+st.plotly_chart(
+    fig_subjects,
+    use_container_width=True,
+    config={"displayModeBar": False}
+)
 
 
-# ---------- CLASS-WISE PERFORMANCE ----------
+# CLASS PERFORMANCE AND PASS DISTRIBUTION
 
-with right:
+st.markdown("<br>", unsafe_allow_html=True)
+
+left_col, right_col = st.columns(2, gap="large")
+
+
+with left_col:
+
+    st.subheader("Class-wise Performance")
 
     class_average = (
         df.groupby("class_name")["average_marks"]
         .mean()
         .reset_index()
+        .sort_values("class_name")
     )
 
-    fig_classes = px.bar(
+    fig_class = px.bar(
         class_average,
         x="class_name",
         y="average_marks",
         color_discrete_sequence=["#52745A"],
-        text_auto=".1f",
-        title="Class-wise Average Performance",
-        labels={
-            "class_name": "Class",
-            "average_marks": "Average Marks"
-        }
+        text_auto=".1f"
     )
 
-    fig_classes.update_layout(
-        paper_bgcolor="#FFFFFF",
-        plot_bgcolor="#FFFFFF",
-        font=dict(
-            family="DM Sans, sans-serif",
-            color="#252923",
-            size=12
-        ),
-        title_font=dict(
-            family="Manrope, sans-serif",
-            size=17,
-            color="#252923"
-        ),
-        showlegend=False,
-        yaxis_range=[0, 100],
-        xaxis_title="Class",
-        yaxis_title="Average Marks",
-        margin=dict(l=15, r=15, t=55, b=15),
-        bargap=0.4
-    )
-
-    fig_classes.update_traces(
+    fig_class.update_traces(
+        marker_line_width=0,
         textposition="outside",
         cliponaxis=False
     )
 
+    fig_class.update_xaxes(title=None)
+
+    fig_class.update_yaxes(
+        title=None,
+        range=[
+            0,
+            max(100, class_average["average_marks"].max() + 12)
+        ]
+    )
+
+    fig_class = style_chart(fig_class, height=330)
+
     st.plotly_chart(
-        fig_classes,
+        fig_class,
         use_container_width=True,
         config={"displayModeBar": False}
     )
 
 
-st.divider()
+with right_col:
 
+    st.subheader("Pass Distribution")
 
-# ==================================================
-# 7. STUDENT PERFORMANCE OVERVIEW
-# ==================================================
+    pass_counts = df["average_marks"].apply(
+        lambda score: "Passed" if score >= 40 else "Failed"
+    ).value_counts()
 
-st.markdown(
-    '<div class="eyebrow">STUDENT INSIGHTS</div>',
-    unsafe_allow_html=True
-)
+    passed = int(pass_counts.get("Passed", 0))
+    failed = int(pass_counts.get("Failed", 0))
 
-st.subheader("Student Performance Overview")
-
-st.caption(
-    "Understand the overall pass distribution and attendance patterns."
-)
-
-col1, col2 = st.columns(2, gap="large")
-
-
-# ---------- PASS DISTRIBUTION ----------
-
-with col1:
-
-    performance_df = pd.DataFrame({
-        "Performance": [
-            "Passed",
-            "Needs Improvement"
-        ],
-        "Students": [
-            (df["average_marks"] >= 40).sum(),
-            (df["average_marks"] < 40).sum()
+    fig_pass = go.Figure(
+        data=[
+            go.Pie(
+                labels=["Passed", "Failed"],
+                values=[passed, failed],
+                hole=0.68,
+                marker=dict(
+                    colors=["#52745A", "#C4A779"],
+                    line=dict(color="white", width=4)
+                ),
+                textinfo="none",
+                hovertemplate=(
+                    "%{label}<br>"
+                    "Students: %{value}<br>"
+                    "Percentage: %{percent}"
+                    "<extra></extra>"
+                ),
+                sort=False
+            )
         ]
-    })
-
-    fig_pass = px.pie(
-        performance_df,
-        names="Performance",
-        values="Students",
-        title="Pass and Improvement Distribution",
-        hole=0.55,
-        color="Performance",
-        color_discrete_map={
-            "Passed": "#52745A",
-            "Needs Improvement": "#C4A779"
-        }
     )
 
     fig_pass.update_layout(
-        paper_bgcolor="#FFFFFF",
-        plot_bgcolor="#FFFFFF",
-        font=dict(
-            family="DM Sans, sans-serif",
-            color="#252923",
-            size=12
+        annotations=[
+            dict(
+                text=f"<b>{total_students}</b><br>Students",
+                x=0.5,
+                y=0.5,
+                font=dict(
+                    size=19,
+                    color=TEXT_COLOR,
+                    family="Manrope"
+                ),
+                showarrow=False
+            )
+        ],
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            x=0.5,
+            xanchor="center",
+            y=-0.08,
+            yanchor="top",
+            font=dict(
+                family="DM Sans",
+                size=13,
+                color=TEXT_COLOR
+            )
         ),
-        title_font=dict(
-            family="Manrope, sans-serif",
-            size=17
+        margin=dict(l=15, r=15, t=25, b=45)
+    )
+
+    fig_pass = style_chart(fig_pass, height=350)
+
+    # Restore donut legend after common chart styling
+    fig_pass.update_layout(
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            x=0.5,
+            xanchor="center",
+            y=-0.08,
+            yanchor="top",
+            font=dict(
+                family="DM Sans",
+                size=13,
+                color=TEXT_COLOR
+            )
         ),
-        legend_title_text="",
-        margin=dict(l=15, r=15, t=55, b=15)
+        annotations=[
+            dict(
+                text=f"<b>{total_students}</b><br>Students",
+                x=0.5,
+                y=0.5,
+                font=dict(
+                    size=19,
+                    color=TEXT_COLOR,
+                    family="Manrope"
+                ),
+                showarrow=False
+            )
+        ],
+        margin=dict(l=15, r=15, t=25, b=45)
     )
 
     st.plotly_chart(
@@ -342,52 +390,48 @@ with col1:
     )
 
 
-# ---------- ATTENDANCE DISTRIBUTION ----------
+# ATTENDANCE ANALYSIS
 
-with col2:
+st.markdown("<br>", unsafe_allow_html=True)
 
-    fig_attendance = px.histogram(
-        df,
-        x="attendance",
-        nbins=12,
-        title="Student Attendance Distribution",
-        color_discrete_sequence=["#91A68A"],
-        labels={
-            "attendance": "Attendance (%)",
-            "count": "Number of Students"
-        }
-    )
+st.markdown(
+    '<div class="eyebrow">ATTENDANCE INSIGHTS</div>',
+    unsafe_allow_html=True
+)
 
-    fig_attendance.update_layout(
-        paper_bgcolor="#FFFFFF",
-        plot_bgcolor="#FFFFFF",
-        font=dict(
-            family="DM Sans, sans-serif",
-            color="#252923",
-            size=12
-        ),
-        title_font=dict(
-            family="Manrope, sans-serif",
-            size=17
-        ),
-        xaxis_title="Attendance (%)",
-        yaxis_title="Number of Students",
-        margin=dict(l=15, r=15, t=55, b=15)
-    )
+st.subheader("Student Attendance Distribution")
 
-    st.plotly_chart(
-        fig_attendance,
-        use_container_width=True,
-        config={"displayModeBar": False}
-    )
+fig_attendance = px.histogram(
+    df,
+    x="attendance",
+    nbins=15,
+    color_discrete_sequence=["#91A68A"],
+    labels={
+        "attendance": "Attendance (%)",
+        "count": "Number of Students"
+    }
+)
 
+fig_attendance.update_traces(
+    marker_line_color="white",
+    marker_line_width=1
+)
 
-st.divider()
+fig_attendance.update_xaxes(title="Attendance (%)")
+fig_attendance.update_yaxes(title="Number of Students")
+
+fig_attendance = style_chart(fig_attendance, height=320)
+
+st.plotly_chart(
+    fig_attendance,
+    use_container_width=True,
+    config={"displayModeBar": False}
+)
 
 
-# ==================================================
-# 8. RECENT STUDENT RECORDS
-# ==================================================
+# RECENT STUDENT RECORDS
+
+st.markdown("<br>", unsafe_allow_html=True)
 
 st.markdown(
     '<div class="eyebrow">STUDENT DIRECTORY</div>',
@@ -396,66 +440,56 @@ st.markdown(
 
 st.subheader("Student Records Preview")
 
-st.caption(
-    "A quick look at the latest records available in the dataset."
-)
-
-preview_columns = [
+display_columns = [
     "student_id",
     "name",
     "class_name",
+    "gender",
     "average_marks",
     "attendance"
 ]
 
-preview_df = (
-    df[preview_columns]
-    .head(10)
-    .copy()
-)
+recent_students = df[display_columns].head(8).copy()
 
-preview_df = preview_df.rename(
+recent_students = recent_students.rename(
     columns={
         "student_id": "Student ID",
         "name": "Student Name",
         "class_name": "Class",
-        "average_marks": "Average Marks",
+        "gender": "Gender",
+        "average_marks": "Average Score",
         "attendance": "Attendance (%)"
     }
 )
 
+recent_students["Average Score"] = (
+    recent_students["Average Score"].round(1)
+)
+
+recent_students["Attendance (%)"] = (
+    recent_students["Attendance (%)"].round(1)
+)
+
 st.dataframe(
-    preview_df.style.format({
-        "Average Marks": "{:.1f}",
-        "Attendance (%)": "{:.1f}"
-    }),
+    recent_students,
     use_container_width=True,
-    hide_index=True,
-    height=390
+    hide_index=True
 )
 
 
-# ==================================================
-# 9. FOOTER
-# ==================================================
-
-st.divider()
+# FOOTER
 
 st.markdown(
     """
     <div style="
-        text-align: center;
-        padding: 12px 0 4px 0;
-        color: #777D73;
-        font-family: 'DM Sans', sans-serif;
-        font-size: 12px;
-        line-height: 1.8;
+        text-align:center;
+        padding:30px 0 10px 0;
+        color:#777D73;
+        font-size:12px;
+        border-top:1px solid #E5E7DF;
+        margin-top:30px;
     ">
-        <strong style="color: #52745A;">EduAnalytics</strong>
-        &nbsp; | &nbsp; Student Performance Analysis System
-        <br>
-        Academic insights powered by Python, Pandas,
-        Plotly and Streamlit.
+        EduAnalytics · Student Performance Dashboard
     </div>
     """,
     unsafe_allow_html=True

@@ -12,21 +12,21 @@ from data_utils import load_data, apply_styles, show_sidebar
 
 st.set_page_config(
     page_title="Student Records | EduAnalytics",
-    page_icon="🎓",
+    page_icon="E",
     layout="wide"
 )
 
 apply_styles()
-show_sidebar()
 
 df = load_data()
+show_sidebar()
 
 
 # ==================================================
-# 2. SUBJECT CONFIGURATION
+# 2. CONSTANTS
 # ==================================================
 
-subject_columns = [
+SUBJECT_COLUMNS = [
     "math_marks",
     "science_marks",
     "english_marks",
@@ -34,7 +34,7 @@ subject_columns = [
     "computer_marks"
 ]
 
-subject_names = {
+SUBJECT_NAMES = {
     "math_marks": "Mathematics",
     "science_marks": "Science",
     "english_marks": "English",
@@ -42,17 +42,66 @@ subject_names = {
     "computer_marks": "Computer"
 }
 
-chart_colors = [
+CHART_COLORS = [
     "#52745A",
     "#91A68A",
     "#C4A779",
-    "#758B9B",
-    "#B58B83"
+    "#AAB9A1",
+    "#D7C8A8"
 ]
+
+TEXT_COLOR = "#252923"
+MUTED_COLOR = "#777D73"
+GRID_COLOR = "#E5E7DF"
 
 
 # ==================================================
-# 3. PAGE HEADER
+# 3. CHART STYLING
+# ==================================================
+
+def style_chart(fig, height=350):
+
+    fig.update_layout(
+        height=height,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(
+            family="DM Sans, sans-serif",
+            color=TEXT_COLOR,
+            size=12
+        ),
+        margin=dict(
+            l=15,
+            r=25,
+            t=45,
+            b=20
+        ),
+        showlegend=False,
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=12,
+            font_family="DM Sans"
+        )
+    )
+
+    fig.update_xaxes(
+        showgrid=False,
+        linecolor=GRID_COLOR,
+        tickfont=dict(color=MUTED_COLOR)
+    )
+
+    fig.update_yaxes(
+        showgrid=True,
+        gridcolor=GRID_COLOR,
+        zeroline=False,
+        tickfont=dict(color=MUTED_COLOR)
+    )
+
+    return fig
+
+
+# ==================================================
+# 4. PAGE HEADER
 # ==================================================
 
 st.markdown(
@@ -63,16 +112,20 @@ st.markdown(
 st.title("Student Records")
 
 st.markdown(
-    '<p class="subtitle">Explore student information, academic results '
-    'and individual performance.</p>',
+    """
+    <p class="subtitle">
+        Explore student information, academic results,
+        and individual performance.
+    </p>
+    """,
     unsafe_allow_html=True
 )
 
-st.divider()
+st.markdown("<br>", unsafe_allow_html=True)
 
 
 # ==================================================
-# 4. STUDENT SEARCH AND FILTERS
+# 5. STUDENT SEARCH AND FILTERS
 # ==================================================
 
 st.markdown(
@@ -89,6 +142,7 @@ st.caption(
 col1, col2, col3 = st.columns(3, gap="medium")
 
 with col1:
+
     classes = ["All classes"] + sorted(
         df["class_name"].dropna().unique().tolist()
     )
@@ -98,7 +152,9 @@ with col1:
         classes
     )
 
+
 with col2:
+
     genders = ["All genders"] + sorted(
         df["gender"].dropna().unique().tolist()
     )
@@ -108,7 +164,9 @@ with col2:
         genders
     )
 
+
 with col3:
+
     search_name = st.text_input(
         "Search student name",
         placeholder="Type a student name..."
@@ -116,19 +174,23 @@ with col3:
 
 
 # Apply filters
+
 filtered_df = df.copy()
 
 if selected_class != "All classes":
+
     filtered_df = filtered_df[
         filtered_df["class_name"] == selected_class
     ]
 
 if selected_gender != "All genders":
+
     filtered_df = filtered_df[
         filtered_df["gender"] == selected_gender
     ]
 
 if search_name.strip():
+
     filtered_df = filtered_df[
         filtered_df["name"].str.contains(
             search_name.strip(),
@@ -137,12 +199,14 @@ if search_name.strip():
         )
     ]
 
+filtered_df = filtered_df.reset_index(drop=True)
+
 
 # ==================================================
-# 5. FILTERED RESULTS OVERVIEW
+# 6. FILTERED STUDENT STATISTICS
 # ==================================================
 
-st.divider()
+st.markdown("<br>", unsafe_allow_html=True)
 
 st.markdown(
     '<div class="eyebrow">RESULTS OVERVIEW</div>',
@@ -150,8 +214,6 @@ st.markdown(
 )
 
 st.subheader("Student Statistics")
-
-col1, col2, col3 = st.columns(3, gap="medium")
 
 matching_students = len(filtered_df)
 
@@ -164,34 +226,46 @@ if matching_students > 0:
     ).mean() * 100
 
 else:
+
     filtered_average = 0
     filtered_pass_rate = 0
 
 
+col1, col2, col3 = st.columns(3, gap="medium")
+
 with col1:
+
     st.metric(
-        "Matching Students",
-        f"{matching_students:,}"
+        label="Matching Students",
+        value=f"{matching_students:,}"
     )
 
 with col2:
+
     st.metric(
-        "Average Score",
-        f"{filtered_average:.1f}%" if matching_students else "N/A"
+        label="Average Score",
+        value=(
+            f"{filtered_average:.1f}/100"
+            if matching_students else "N/A"
+        )
     )
 
 with col3:
+
     st.metric(
-        "Pass Rate",
-        f"{filtered_pass_rate:.1f}%" if matching_students else "N/A"
+        label="Pass Rate",
+        value=(
+            f"{filtered_pass_rate:.1f}%"
+            if matching_students else "N/A"
+        )
     )
 
 
 # ==================================================
-# 6. STUDENT DIRECTORY TABLE
+# 7. STUDENT DIRECTORY TABLE
 # ==================================================
 
-st.divider()
+st.markdown("<br>", unsafe_allow_html=True)
 
 st.markdown(
     '<div class="eyebrow">RECORDS / DATABASE</div>',
@@ -201,7 +275,7 @@ st.markdown(
 st.subheader("Student Directory")
 
 st.caption(
-    "Browse the filtered records and download the student data."
+    "Browse the filtered student records and export the data."
 )
 
 if filtered_df.empty:
@@ -218,7 +292,7 @@ else:
         "name",
         "class_name",
         "gender",
-        *subject_columns,
+        *SUBJECT_COLUMNS,
         "average_marks",
         "attendance",
         "study_hours"
@@ -241,11 +315,29 @@ else:
         }
     )
 
+    directory_df = directory_df.copy()
+
+    directory_df["Average Marks"] = (
+        directory_df["Average Marks"].round(1)
+    )
+
+    directory_df["Attendance (%)"] = (
+        directory_df["Attendance (%)"].round(1)
+    )
+
+    directory_df["Study Hours"] = (
+        directory_df["Study Hours"].round(1)
+    )
+
     st.dataframe(
         directory_df,
         use_container_width=True,
         hide_index=True,
         height=420
+    )
+
+    st.caption(
+        f"Showing {matching_students} student records."
     )
 
     csv_data = filtered_df.to_csv(
@@ -261,21 +353,25 @@ else:
 
 
 # ==================================================
-# 7. INDIVIDUAL STUDENT PROFILE
+# 8. INDIVIDUAL STUDENT PROFILE
 # ==================================================
 
-st.divider()
+st.markdown("<br>", unsafe_allow_html=True)
 
 st.markdown(
     '<div class="eyebrow">STUDENT INSIGHTS / PROFILE</div>',
     unsafe_allow_html=True
 )
 
-st.title("Individual Student Profile")
+st.header("Individual Student Profile")
 
 st.markdown(
-    '<p class="subtitle">Explore an individual student’s academic '
-    'performance, attendance and study habits.</p>',
+    """
+    <p class="subtitle">
+        Explore an individual student's academic performance,
+        attendance, and study habits.
+    </p>
+    """,
     unsafe_allow_html=True
 )
 
@@ -283,7 +379,7 @@ st.markdown(
 if filtered_df.empty:
 
     st.info(
-        "Select different filters to view an individual student profile."
+        "Change your filters to select a student and view their profile."
     )
 
 else:
@@ -304,9 +400,8 @@ else:
         filtered_df["student_id"] == selected_student_id
     ].iloc[0]
 
-    st.divider()
+    st.markdown("<br>", unsafe_allow_html=True)
 
-    # Student identity
     st.subheader(str(student["name"]))
 
     st.caption(
@@ -317,35 +412,41 @@ else:
 
 
     # ==================================================
-    # 8. INDIVIDUAL STUDENT METRICS
+    # 9. INDIVIDUAL STUDENT METRICS
     # ==================================================
-
-    col1, col2, col3, col4 = st.columns(4, gap="medium")
 
     subjects_passed = sum(
         pd.notna(student[column]) and student[column] >= 40
-        for column in subject_columns
+        for column in SUBJECT_COLUMNS
     )
 
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    col1, col2, col3, col4 = st.columns(4, gap="medium")
+
     with col1:
+
         st.metric(
             "Average Marks",
             f"{student['average_marks']:.1f}/100"
         )
 
     with col2:
+
         st.metric(
             "Attendance",
             f"{student['attendance']:.1f}%"
         )
 
     with col3:
+
         st.metric(
             "Study Hours / Day",
             f"{student['study_hours']:.1f}"
         )
 
     with col4:
+
         st.metric(
             "Subjects Passed",
             f"{subjects_passed}/5"
@@ -353,10 +454,10 @@ else:
 
 
     # ==================================================
-    # 9. SUBJECT-WISE PERFORMANCE
+    # 10. SUBJECT-WISE PERFORMANCE
     # ==================================================
 
-    st.divider()
+    st.markdown("<br>", unsafe_allow_html=True)
 
     st.markdown(
         '<div class="eyebrow">ACADEMIC BREAKDOWN</div>',
@@ -367,42 +468,61 @@ else:
 
     student_subjects = pd.DataFrame({
         "Subject": [
-            subject_names[column]
-            for column in subject_columns
+            SUBJECT_NAMES[column]
+            for column in SUBJECT_COLUMNS
         ],
         "Marks": [
             student[column]
-            for column in subject_columns
+            for column in SUBJECT_COLUMNS
         ]
     })
 
     fig_student = px.bar(
         student_subjects,
-        x="Subject",
-        y="Marks",
+        x="Marks",
+        y="Subject",
+        orientation="h",
         color="Subject",
         text_auto=".1f",
-        color_discrete_sequence=chart_colors
-    )
-
-    fig_student.update_layout(
-        paper_bgcolor="#FFFFFF",
-        plot_bgcolor="#FFFFFF",
-        font=dict(
-            family="DM Sans, sans-serif",
-            size=12,
-            color="#252923"
-        ),
-        showlegend=False,
-        yaxis_range=[0, 100],
-        xaxis_title="",
-        yaxis_title="Marks out of 100",
-        margin=dict(l=15, r=15, t=25, b=15)
+        color_discrete_sequence=CHART_COLORS
     )
 
     fig_student.update_traces(
         textposition="outside",
-        cliponaxis=False
+        cliponaxis=False,
+        marker_line_width=0
+    )
+
+    fig_student.update_layout(
+        xaxis=dict(
+            title="Marks out of 100",
+            range=[0, 112]
+        ),
+        yaxis=dict(
+            title=None,
+            categoryorder="array",
+            categoryarray=[
+                "Computer",
+                "Social Science",
+                "English",
+                "Science",
+                "Mathematics"
+            ]
+        )
+    )
+
+    fig_student = style_chart(fig_student, height=350)
+
+    fig_student.update_xaxes(
+        title="Marks out of 100",
+        range=[0, 112],
+        showgrid=True,
+        gridcolor=GRID_COLOR
+    )
+
+    fig_student.update_yaxes(
+        title=None,
+        showgrid=False
     )
 
     st.plotly_chart(
@@ -413,10 +533,10 @@ else:
 
 
     # ==================================================
-    # 10. ATTENDANCE AND STUDY HABITS
+    # 11. ATTENDANCE AND STUDY HABITS
     # ==================================================
 
-    st.divider()
+    st.markdown("<br>", unsafe_allow_html=True)
 
     st.markdown(
         '<div class="eyebrow">LEARNING HABITS</div>',
@@ -427,6 +547,8 @@ else:
 
     col1, col2 = st.columns(2, gap="large")
 
+
+    # Attendance chart
 
     with col1:
 
@@ -456,19 +578,30 @@ else:
             title="Attendance Overview"
         )
 
+        attendance_fig.update_traces(
+            marker_line_width=0,
+            textposition="outside"
+        )
+
         attendance_fig.update_layout(
-            paper_bgcolor="#FFFFFF",
-            plot_bgcolor="#FFFFFF",
-            font=dict(
-                family="DM Sans, sans-serif",
-                size=12,
-                color="#252923"
+            barmode="group",
+            yaxis=dict(
+                title="Percentage (%)",
+                range=[0, 115]
             ),
-            showlegend=False,
-            yaxis_range=[0, 100],
-            xaxis_title="",
-            yaxis_title="Percentage (%)",
-            margin=dict(l=15, r=15, t=55, b=15)
+            xaxis=dict(title=None)
+        )
+
+        attendance_fig = style_chart(
+            attendance_fig,
+            height=350
+        )
+
+        attendance_fig.update_yaxes(
+            title="Percentage (%)",
+            range=[0, 115],
+            showgrid=True,
+            gridcolor=GRID_COLOR
         )
 
         st.plotly_chart(
@@ -477,6 +610,8 @@ else:
             config={"displayModeBar": False}
         )
 
+
+    # Study hours chart
 
     with col2:
 
@@ -494,18 +629,29 @@ else:
             title="Daily Study Hours"
         )
 
+        study_fig.update_traces(
+            marker_line_width=0,
+            textposition="outside"
+        )
+
         study_fig.update_layout(
-            paper_bgcolor="#FFFFFF",
-            plot_bgcolor="#FFFFFF",
-            font=dict(
-                family="DM Sans, sans-serif",
-                size=12,
-                color="#252923"
-            ),
-            showlegend=False,
-            xaxis_title="",
-            yaxis_title="Hours per day",
-            margin=dict(l=15, r=15, t=55, b=15)
+            xaxis=dict(title=None),
+            yaxis=dict(
+                title="Hours per day",
+                rangemode="tozero"
+            )
+        )
+
+        study_fig = style_chart(
+            study_fig,
+            height=350
+        )
+
+        study_fig.update_yaxes(
+            title="Hours per day",
+            rangemode="tozero",
+            showgrid=True,
+            gridcolor=GRID_COLOR
         )
 
         st.plotly_chart(
@@ -516,10 +662,10 @@ else:
 
 
     # ==================================================
-    # 11. PERFORMANCE SUMMARY
+    # 12. PERFORMANCE SUMMARY
     # ==================================================
 
-    st.divider()
+    st.markdown("<br>", unsafe_allow_html=True)
 
     st.markdown(
         '<div class="eyebrow">PERFORMANCE ASSESSMENT</div>',
@@ -555,11 +701,23 @@ else:
 
 
 # ==================================================
-# 12. FOOTER
+# 13. FOOTER
 # ==================================================
 
-st.divider()
+st.markdown("<br>", unsafe_allow_html=True)
 
-st.caption(
-    "EduAnalytics | Student Records & Individual Performance Insights"
+st.markdown(
+    """
+    <div style="
+        text-align:center;
+        padding:30px 0 10px 0;
+        color:#777D73;
+        font-size:12px;
+        border-top:1px solid #E5E7DF;
+        margin-top:30px;
+    ">
+        EduAnalytics · Student Records & Individual Performance Insights
+    </div>
+    """,
+    unsafe_allow_html=True
 )

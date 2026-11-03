@@ -12,22 +12,21 @@ from data_utils import load_data, apply_styles, show_sidebar
 
 st.set_page_config(
     page_title="Academic Analytics | EduAnalytics",
-    page_icon="📊",
+    page_icon="E",
     layout="wide"
 )
 
 apply_styles()
 
+df = load_data()
 show_sidebar()
 
-df = load_data()
-
 
 # ==================================================
-# 2. SUBJECT CONFIGURATION
+# 2. CONSTANTS
 # ==================================================
 
-subject_columns = [
+SUBJECT_COLUMNS = [
     "math_marks",
     "science_marks",
     "english_marks",
@@ -35,7 +34,7 @@ subject_columns = [
     "computer_marks"
 ]
 
-subject_names = {
+SUBJECT_NAMES = {
     "math_marks": "Mathematics",
     "science_marks": "Science",
     "english_marks": "English",
@@ -43,17 +42,65 @@ subject_names = {
     "computer_marks": "Computer"
 }
 
-chart_colors = [
+CHART_COLORS = [
     "#52745A",
     "#91A68A",
     "#C4A779",
-    "#758B9B",
-    "#B58B83"
+    "#AAB9A1",
+    "#D7C8A8"
 ]
+
+TEXT_COLOR = "#252923"
+MUTED_COLOR = "#777D73"
+GRID_COLOR = "#E5E7DF"
 
 
 # ==================================================
-# 3. PAGE HEADER
+# 3. CHART STYLING
+# ==================================================
+
+def style_chart(fig, height=350):
+
+    fig.update_layout(
+        height=height,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(
+            family="DM Sans, sans-serif",
+            color=TEXT_COLOR,
+            size=12
+        ),
+        margin=dict(
+            l=15,
+            r=25,
+            t=25,
+            b=20
+        ),
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=12,
+            font_family="DM Sans"
+        )
+    )
+
+    fig.update_xaxes(
+        showgrid=False,
+        linecolor=GRID_COLOR,
+        tickfont=dict(color=MUTED_COLOR)
+    )
+
+    fig.update_yaxes(
+        showgrid=True,
+        gridcolor=GRID_COLOR,
+        zeroline=False,
+        tickfont=dict(color=MUTED_COLOR)
+    )
+
+    return fig
+
+
+# ==================================================
+# 4. PAGE HEADER
 # ==================================================
 
 st.markdown(
@@ -64,8 +111,12 @@ st.markdown(
 st.title("Academic Analytics")
 
 st.markdown(
-    '<p class="subtitle">Understand academic performance, '
-    'attendance patterns and classroom trends.</p>',
+    """
+    <p class="subtitle">
+        Understand academic performance, attendance patterns,
+        and classroom trends.
+    </p>
+    """,
     unsafe_allow_html=True
 )
 
@@ -74,11 +125,11 @@ st.caption(
     "across all five academic subjects."
 )
 
-st.divider()
+st.markdown("<br>", unsafe_allow_html=True)
 
 
 # ==================================================
-# 4. ACADEMIC OVERVIEW
+# 5. ACADEMIC OVERVIEW
 # ==================================================
 
 st.markdown(
@@ -116,7 +167,7 @@ with col1:
 with col2:
     st.metric(
         "Average Score",
-        f"{average_score:.1f}%"
+        f"{average_score:.1f}/100"
     )
 
 with col3:
@@ -127,17 +178,16 @@ with col3:
 
 with col4:
     st.metric(
-        "Average Attendance",
+        "Attendance",
         f"{average_attendance:.1f}%"
     )
 
 
-st.divider()
-
-
 # ==================================================
-# 5. SUBJECT-WISE PERFORMANCE
+# 6. SUBJECT-WISE PERFORMANCE
 # ==================================================
+
+st.markdown("<br>", unsafe_allow_html=True)
 
 st.markdown(
     '<div class="eyebrow">SUBJECT ANALYSIS</div>',
@@ -147,49 +197,68 @@ st.markdown(
 st.subheader("Subject-wise Performance")
 
 st.caption(
-    "Compare average marks across Mathematics, Science, English, "
-    "Social Science and Computer."
+    "Compare average marks across all five academic subjects."
 )
 
 subject_data = pd.DataFrame({
     "Subject": [
-        subject_names[column]
-        for column in subject_columns
+        SUBJECT_NAMES[column]
+        for column in SUBJECT_COLUMNS
     ],
     "Average Marks": [
         df[column].mean()
-        for column in subject_columns
+        for column in SUBJECT_COLUMNS
     ]
 })
 
 subject_fig = px.bar(
     subject_data,
-    x="Subject",
-    y="Average Marks",
+    x="Average Marks",
+    y="Subject",
+    orientation="h",
     color="Subject",
     text_auto=".1f",
-    color_discrete_sequence=chart_colors
-)
-
-subject_fig.update_layout(
-    paper_bgcolor="#FFFFFF",
-    plot_bgcolor="#FFFFFF",
-    font=dict(
-        family="DM Sans, sans-serif",
-        size=12,
-        color="#252923"
-    ),
-    showlegend=False,
-    yaxis_range=[0, 100],
-    xaxis_title="",
-    yaxis_title="Average Marks",
-    margin=dict(l=15, r=15, t=25, b=15),
-    bargap=0.4
+    color_discrete_sequence=CHART_COLORS
 )
 
 subject_fig.update_traces(
     textposition="outside",
-    cliponaxis=False
+    cliponaxis=False,
+    marker_line_width=0
+)
+
+subject_fig.update_layout(
+    showlegend=False,
+    xaxis=dict(
+        title="Average Marks",
+        range=[0, 112]
+    ),
+    yaxis=dict(
+        title=None,
+        categoryorder="array",
+        categoryarray=[
+            "Computer",
+            "Social Science",
+            "English",
+            "Science",
+            "Mathematics"
+        ]
+    ),
+    bargap=0.35
+)
+
+subject_fig = style_chart(subject_fig, height=370)
+
+subject_fig.update_xaxes(
+    title="Average Marks",
+    range=[0, 112],
+    showgrid=True,
+    gridcolor=GRID_COLOR
+)
+
+subject_fig.update_yaxes(
+    title=None,
+    showgrid=False
 )
 
 st.plotly_chart(
@@ -199,12 +268,11 @@ st.plotly_chart(
 )
 
 
-st.divider()
-
-
 # ==================================================
-# 6. STUDENT MARKS DISTRIBUTION
+# 7. STUDENT MARKS DISTRIBUTION
 # ==================================================
+
+st.markdown("<br>", unsafe_allow_html=True)
 
 st.markdown(
     '<div class="eyebrow">PERFORMANCE DISTRIBUTION</div>',
@@ -214,8 +282,8 @@ st.markdown(
 st.subheader("Student Marks Distribution")
 
 st.caption(
-    "Understand how students are distributed across different "
-    "average-score ranges."
+    "Understand how students are distributed across "
+    "different average-score ranges."
 )
 
 marks_fig = px.histogram(
@@ -229,17 +297,27 @@ marks_fig = px.histogram(
     }
 )
 
+marks_fig.update_traces(
+    marker_line_color="white",
+    marker_line_width=1
+)
+
 marks_fig.update_layout(
-    paper_bgcolor="#FFFFFF",
-    plot_bgcolor="#FFFFFF",
-    font=dict(
-        family="DM Sans, sans-serif",
-        size=12,
-        color="#252923"
-    ),
     xaxis_title="Average Marks",
-    yaxis_title="Number of Students",
-    margin=dict(l=15, r=15, t=25, b=15)
+    yaxis_title="Number of Students"
+)
+
+marks_fig = style_chart(marks_fig, height=350)
+
+marks_fig.update_xaxes(
+    title="Average Marks",
+    showgrid=False
+)
+
+marks_fig.update_yaxes(
+    title="Number of Students",
+    showgrid=True,
+    gridcolor=GRID_COLOR
 )
 
 st.plotly_chart(
@@ -249,12 +327,11 @@ st.plotly_chart(
 )
 
 
-st.divider()
-
-
 # ==================================================
-# 7. ATTENDANCE DISTRIBUTION
+# 8. ATTENDANCE DISTRIBUTION
 # ==================================================
+
+st.markdown("<br>", unsafe_allow_html=True)
 
 st.markdown(
     '<div class="eyebrow">ATTENDANCE ANALYSIS</div>',
@@ -279,17 +356,27 @@ attendance_fig = px.histogram(
     }
 )
 
+attendance_fig.update_traces(
+    marker_line_color="white",
+    marker_line_width=1
+)
+
 attendance_fig.update_layout(
-    paper_bgcolor="#FFFFFF",
-    plot_bgcolor="#FFFFFF",
-    font=dict(
-        family="DM Sans, sans-serif",
-        size=12,
-        color="#252923"
-    ),
     xaxis_title="Attendance (%)",
-    yaxis_title="Number of Students",
-    margin=dict(l=15, r=15, t=25, b=15)
+    yaxis_title="Number of Students"
+)
+
+attendance_fig = style_chart(attendance_fig, height=350)
+
+attendance_fig.update_xaxes(
+    title="Attendance (%)",
+    showgrid=False
+)
+
+attendance_fig.update_yaxes(
+    title="Number of Students",
+    showgrid=True,
+    gridcolor=GRID_COLOR
 )
 
 st.plotly_chart(
@@ -299,12 +386,11 @@ st.plotly_chart(
 )
 
 
-st.divider()
-
-
 # ==================================================
-# 8. CLASS-WISE SUBJECT PERFORMANCE
+# 9. CLASS-WISE SUBJECT PERFORMANCE
 # ==================================================
+
+st.markdown("<br>", unsafe_allow_html=True)
 
 st.markdown(
     '<div class="eyebrow">CLASS COMPARISON</div>',
@@ -320,13 +406,13 @@ st.caption(
 
 class_subject_data = df.melt(
     id_vars=["class_name"],
-    value_vars=subject_columns,
+    value_vars=SUBJECT_COLUMNS,
     var_name="Subject",
     value_name="Marks"
 )
 
 class_subject_data["Subject"] = (
-    class_subject_data["Subject"].map(subject_names)
+    class_subject_data["Subject"].map(SUBJECT_NAMES)
 )
 
 class_performance = (
@@ -345,7 +431,7 @@ class_fig = px.bar(
     color="Subject",
     barmode="group",
     text_auto=".1f",
-    color_discrete_sequence=chart_colors,
+    color_discrete_sequence=CHART_COLORS,
     labels={
         "class_name": "Class",
         "Marks": "Average Marks",
@@ -353,20 +439,42 @@ class_fig = px.bar(
     }
 )
 
+class_fig.update_traces(
+    marker_line_width=0,
+    textposition="outside",
+    cliponaxis=False
+)
+
 class_fig.update_layout(
-    paper_bgcolor="#FFFFFF",
-    plot_bgcolor="#FFFFFF",
-    font=dict(
-        family="DM Sans, sans-serif",
-        size=12,
-        color="#252923"
+    yaxis=dict(
+        title="Average Marks",
+        range=[0, 115]
     ),
-    yaxis_range=[0, 100],
-    xaxis_title="Class",
-    yaxis_title="Average Marks",
-    legend_title="Subject",
-    margin=dict(l=15, r=15, t=25, b=15),
-    bargap=0.2
+    xaxis=dict(title="Class"),
+    legend=dict(
+        title=None,
+        orientation="h",
+        yanchor="bottom",
+        y=1.02,
+        xanchor="left",
+        x=0
+    ),
+    bargap=0.2,
+    bargroupgap=0.08
+)
+
+class_fig = style_chart(class_fig, height=440)
+
+class_fig.update_xaxes(
+    title="Class",
+    showgrid=False
+)
+
+class_fig.update_yaxes(
+    title="Average Marks",
+    range=[0, 115],
+    showgrid=True,
+    gridcolor=GRID_COLOR
 )
 
 st.plotly_chart(
@@ -376,12 +484,11 @@ st.plotly_chart(
 )
 
 
-st.divider()
-
-
 # ==================================================
-# 9. CLASS PERFORMANCE SUMMARY
+# 10. CLASS PERFORMANCE SUMMARY
 # ==================================================
+
+st.markdown("<br>", unsafe_allow_html=True)
 
 st.markdown(
     '<div class="eyebrow">CLASS INSIGHTS</div>',
@@ -391,7 +498,7 @@ st.markdown(
 st.subheader("Class Performance Summary")
 
 st.caption(
-    "Review student counts, average marks and attendance "
+    "Review student counts, average marks, and attendance "
     "for each class."
 )
 
@@ -414,11 +521,16 @@ class_summary = class_summary.rename(
     }
 )
 
+class_summary["Average Score (%)"] = (
+    class_summary["Average Score (%)"].round(1)
+)
+
+class_summary["Average Attendance (%)"] = (
+    class_summary["Average Attendance (%)"].round(1)
+)
+
 st.dataframe(
-    class_summary.style.format({
-        "Average Score (%)": "{:.1f}",
-        "Average Attendance (%)": "{:.1f}"
-    }),
+    class_summary,
     use_container_width=True,
     hide_index=True,
     height=220
@@ -426,11 +538,23 @@ st.dataframe(
 
 
 # ==================================================
-# 10. FOOTER
+# 11. FOOTER
 # ==================================================
 
-st.divider()
+st.markdown("<br>", unsafe_allow_html=True)
 
-st.caption(
-    "EduAnalytics | Academic Analytics & Performance Insights"
+st.markdown(
+    """
+    <div style="
+        text-align:center;
+        padding:30px 0 10px 0;
+        color:#777D73;
+        font-size:12px;
+        border-top:1px solid #E5E7DF;
+        margin-top:30px;
+    ">
+        EduAnalytics · Academic Analytics & Performance Insights
+    </div>
+    """,
+    unsafe_allow_html=True
 )
