@@ -1,8 +1,9 @@
 
 import streamlit as st
-from data_utils import load_data, apply_styles, show_sidebar
 import pandas as pd
 import plotly.express as px
+
+from data_utils import load_data, apply_styles, show_sidebar
 
 st.set_page_config(
     page_title="Student Records | EduAnalytics",
@@ -12,14 +13,34 @@ st.set_page_config(
 
 apply_styles()
 show_sidebar()
+
 df = load_data()
 
+# Subject configuration
+subject_columns = [
+    "math_marks",
+    "science_marks",
+    "english_marks",
+    "social_science_marks",
+    "computer_marks"
+]
+
+subject_names = {
+    "math_marks": "Mathematics",
+    "science_marks": "Science",
+    "english_marks": "English",
+    "social_science_marks": "Social Science",
+    "computer_marks": "Computer"
+}
+
+# Page heading
 st.markdown(
     '<div class="eyebrow">WORKSPACE / STUDENTS</div>',
     unsafe_allow_html=True
 )
 
 st.title("Student records")
+
 st.markdown(
     '<p class="subtitle">Search and explore individual student information.</p>',
     unsafe_allow_html=True
@@ -27,7 +48,7 @@ st.markdown(
 
 st.divider()
 
-# Filters
+# ---------- FILTERS ----------
 st.subheader("Find students")
 
 col1, col2, col3 = st.columns(3)
@@ -72,7 +93,7 @@ if search_name.strip():
         )
     ]
 
-# Metrics update with filters
+# ---------- RESULTS OVERVIEW ----------
 st.divider()
 st.subheader("Results overview")
 
@@ -94,17 +115,19 @@ with col3:
     if filtered_df.empty:
         st.metric("Pass rate", "N/A")
     else:
-        rate = (
+        pass_rate = (
             filtered_df["average_marks"] >= 40
         ).mean() * 100
-        st.metric("Pass rate", f"{rate:.1f}%")
 
-# Table
+        st.metric("Pass rate", f"{pass_rate:.1f}%")
+
+# ---------- STUDENT DIRECTORY ----------
 st.divider()
 st.subheader("Student directory")
 
 if filtered_df.empty:
     st.warning("No students match these filters.")
+
 else:
     st.dataframe(
         filtered_df,
@@ -132,17 +155,17 @@ st.markdown(
 )
 
 st.title("Individual Student Profile")
+
 st.caption(
     "Select a student to explore their academic performance, "
     "attendance, and study habits."
 )
 
-import plotly.express as px
-
 if filtered_df.empty:
+
     st.info("No students are available for the selected filters.")
+
 else:
-    # Select a student from the filtered results
     student_options = filtered_df["student_id"].tolist()
 
     selected_student_id = st.selectbox(
@@ -155,9 +178,9 @@ else:
         key="individual_student_selector"
     )
 
-    # Get the selected student's record
-    student = df.loc[
-        df["student_id"] == selected_student_id
+    # Retrieve the student from filtered results
+    student = filtered_df.loc[
+        filtered_df["student_id"] == selected_student_id
     ].iloc[0]
 
     st.divider()
@@ -169,7 +192,7 @@ else:
         f"Class: {student['class_name']}"
     )
 
-    # Student summary metrics
+    # ---------- STUDENT SUMMARY METRICS ----------
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
@@ -191,31 +214,28 @@ else:
         )
 
     with col4:
-        subjects_passed = sum([
-            student["math_marks"] >= 40,
-            student["science_marks"] >= 40,
-            student["english_marks"] >= 40
-        ])
+        subjects_passed = sum(
+            student[column] >= 40
+            for column in subject_columns
+        )
 
         st.metric(
             "Subjects Passed",
-            f"{subjects_passed}/3"
+            f"{subjects_passed}/5"
         )
 
-    # ---------- SUBJECT PERFORMANCE GRAPH ----------
+    # ---------- SUBJECT PERFORMANCE ----------
     st.divider()
     st.subheader("Subject-wise Performance")
 
     student_subjects = pd.DataFrame({
         "Subject": [
-            "Mathematics",
-            "Science",
-            "English"
+            subject_names[column]
+            for column in subject_columns
         ],
         "Marks": [
-            student["math_marks"],
-            student["science_marks"],
-            student["english_marks"]
+            student[column]
+            for column in subject_columns
         ]
     })
 
@@ -228,7 +248,9 @@ else:
         color_discrete_sequence=[
             "#52745A",
             "#91A68A",
-            "#C4A779"
+            "#C4A779",
+            "#758B9B",
+            "#B58B83"
         ]
     )
 
@@ -315,7 +337,7 @@ else:
             use_container_width=True
         )
 
-    # ---------- PERFORMANCE STATUS ----------
+    # ---------- PERFORMANCE SUMMARY ----------
     st.divider()
     st.subheader("Performance Summary")
 
@@ -324,11 +346,13 @@ else:
             "This student's average marks are below 40. "
             "Consider reviewing their subject-wise performance."
         )
+
     elif student["average_marks"] < 60:
         st.info(
             "This student is passing, but there may be "
             "opportunities to improve their academic performance."
         )
+
     else:
         st.success(
             "This student has an average score of 60 or above."
