@@ -3,30 +3,71 @@ import streamlit as st
 import pandas as pd
 
 
-# --------------------------------------------------
+# ==================================================
+# DATA CONFIGURATION
+# ==================================================
+
+SUBJECT_COLUMNS = [
+    "math_marks",
+    "science_marks",
+    "english_marks",
+    "social_science_marks",
+    "computer_marks"
+]
+
+SUBJECT_NAMES = {
+    "math_marks": "Mathematics",
+    "science_marks": "Science",
+    "english_marks": "English",
+    "social_science_marks": "Social Science",
+    "computer_marks": "Computer"
+}
+
+CHART_COLORS = [
+    "#52745A",
+    "#91A68A",
+    "#C4A779",
+    "#758B9B",
+    "#B58B83"
+]
+
+
+# ==================================================
 # DATA LOADING
-# --------------------------------------------------
+# ==================================================
 
 @st.cache_data
 def load_data():
+
     df = pd.read_csv("data/students.csv")
 
-    subject_columns = [
-        "math_marks",
-        "science_marks",
-        "english_marks",
-        "social_science_marks",
-        "computer_marks"
+    required_columns = SUBJECT_COLUMNS + [
+        "student_id",
+        "name",
+        "class_name",
+        "gender",
+        "attendance",
+        "study_hours"
     ]
 
-    df["average_marks"] = df[subject_columns].mean(axis=1)
+    missing_columns = [
+        column for column in required_columns
+        if column not in df.columns
+    ]
+
+    if missing_columns:
+        raise ValueError(
+            f"Missing required dataset columns: {missing_columns}"
+        )
+
+    df["average_marks"] = df[SUBJECT_COLUMNS].mean(axis=1)
 
     return df
 
 
-# --------------------------------------------------
+# ==================================================
 # GLOBAL APPLICATION STYLING
-# --------------------------------------------------
+# ==================================================
 
 def apply_styles():
 
@@ -47,25 +88,20 @@ def apply_styles():
         --border: #E5E7DF;
     }
 
-    /* ---------- MAIN APPLICATION ---------- */
+    /* MAIN APPLICATION */
 
     .stApp {
-        background-color: var(--background);
+        background: var(--background);
         color: var(--text);
         font-family: 'DM Sans', sans-serif;
     }
 
-    /* Prevent content from touching screen edges */
-
     .block-container {
         max-width: 1380px;
-        padding-top: 3.5rem;
-        padding-bottom: 4rem;
-        padding-left: 3rem;
-        padding-right: 3rem;
+        padding: 3rem 2.5rem 4rem 2.5rem;
     }
 
-    /* ---------- TYPOGRAPHY ---------- */
+    /* TYPOGRAPHY */
 
     h1, h2, h3, h4 {
         font-family: 'Manrope', sans-serif !important;
@@ -77,7 +113,6 @@ def apply_styles():
         font-size: 2.35rem !important;
         font-weight: 800 !important;
         line-height: 1.3 !important;
-        margin-bottom: 0.5rem !important;
     }
 
     h2 {
@@ -91,11 +126,11 @@ def apply_styles():
     }
 
     p, label, li {
-        color: var(--text);
         font-family: 'DM Sans', sans-serif;
+        color: var(--text);
     }
 
-    /* ---------- PAGE LABELS ---------- */
+    /* PAGE LABELS */
 
     .eyebrow {
         display: block;
@@ -104,10 +139,8 @@ def apply_styles():
         letter-spacing: 2px;
         font-size: 11px;
         font-weight: 700;
-        line-height: 1.6;
-        margin-top: 0.25rem;
-        margin-bottom: 0.75rem;
-        overflow: visible;
+        line-height: 1.7;
+        margin: 0 0 10px 0;
     }
 
     .subtitle {
@@ -115,26 +148,25 @@ def apply_styles():
         font-size: 15px;
         line-height: 1.7;
         margin-top: 0;
-        margin-bottom: 1rem;
     }
 
-    /* ---------- DIVIDERS ---------- */
+    /* DIVIDERS */
 
     hr {
         border: none;
         border-top: 1px solid var(--border);
-        margin: 1.8rem 0;
+        margin: 1.7rem 0;
     }
 
-    /* ---------- METRIC CARDS ---------- */
+    /* METRIC CARDS */
 
     [data-testid="stMetric"] {
         background: var(--surface);
-        padding: 22px 24px;
+        padding: 22px 20px;
         border: 1px solid var(--border);
         border-radius: 10px;
         min-height: 115px;
-        box-shadow: 0 2px 8px rgba(37, 41, 35, 0.025);
+        box-shadow: 0 2px 8px rgba(37, 41, 35, 0.035);
     }
 
     [data-testid="stMetricLabel"] {
@@ -149,7 +181,7 @@ def apply_styles():
         font-weight: 800 !important;
     }
 
-    /* ---------- BUTTONS ---------- */
+    /* BUTTONS */
 
     .stButton > button,
     .stDownloadButton > button {
@@ -160,7 +192,7 @@ def apply_styles():
         padding: 10px 20px;
         font-family: 'DM Sans', sans-serif;
         font-weight: 600;
-        transition: all 0.2s ease;
+        transition: 0.2s ease;
     }
 
     .stButton > button:hover,
@@ -170,7 +202,7 @@ def apply_styles():
         color: white;
     }
 
-    /* ---------- INPUT FIELDS ---------- */
+    /* INPUTS */
 
     .stTextInput input,
     .stNumberInput input,
@@ -183,39 +215,81 @@ def apply_styles():
     }
 
     [data-baseweb="select"] > div {
-        background-color: var(--surface);
+        background: var(--surface);
         border-color: var(--border);
         border-radius: 7px;
     }
 
-    input:focus,
-    textarea:focus {
-        border-color: var(--accent) !important;
-        box-shadow: 0 0 0 1px var(--accent) !important;
-    }
-
-    /* ---------- SIDEBAR ---------- */
+    /* SIDEBAR */
 
     [data-testid="stSidebar"] {
         background: var(--sidebar);
         border-right: 1px solid var(--border);
     }
 
-    [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] h3 {
-        font-family: 'Manrope', sans-serif !important;
-        font-size: 1.2rem !important;
-        font-weight: 800 !important;
-    }
-
     [data-testid="stSidebar"] .block-container {
-        padding-top: 2.5rem;
-        padding-left: 1.4rem;
-        padding-right: 1.4rem;
+        padding: 2rem 1.2rem;
     }
 
-    /* ---------- TABLES ---------- */
+    [data-testid="stSidebar"] h1 {
+        font-size: 1.2rem !important;
+    }
+
+    /* SIDEBAR BRANDING */
+
+    .brand-container {
+        padding: 12px 5px 22px 5px;
+    }
+
+    .brand-logo {
+        width: 46px;
+        height: 46px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--accent);
+        color: white;
+        border-radius: 11px;
+        font-size: 25px;
+        font-family: 'Manrope', sans-serif;
+        font-weight: 800;
+        margin-bottom: 15px;
+    }
+
+    .brand-name {
+        font-family: 'Manrope', sans-serif;
+        font-size: 23px;
+        font-weight: 800;
+        color: var(--text);
+        letter-spacing: -1px;
+        margin-bottom: 4px;
+    }
+
+    .brand-tagline {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+    }
+
+    .sidebar-section {
+        color: var(--accent);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        margin: 12px 0;
+    }
+
+    /* NAVIGATION */
+
+    [data-testid="stSidebarNav"] {
+        display: none;
+    }
+
+    [data-testid="stSidebar"] a {
+        border-radius: 8px;
+    }
+
+    /* TABLES */
 
     [data-testid="stDataFrame"],
     [data-testid="stTable"] {
@@ -226,11 +300,7 @@ def apply_styles():
         overflow: hidden;
     }
 
-    [data-testid="stDataFrame"] {
-        background: var(--surface);
-    }
-
-    /* ---------- CHART CONTAINERS ---------- */
+    /* CHARTS */
 
     [data-testid="stPlotlyChart"] {
         width: 100%;
@@ -242,41 +312,23 @@ def apply_styles():
         overflow: hidden;
     }
 
-    /* ---------- GENERAL LAYOUT ---------- */
-
-    [data-testid="stHorizontalBlock"] {
-        gap: 1.2rem;
-    }
-
-    [data-testid="stVerticalBlock"] {
-        gap: 0.9rem;
-    }
-
-    [data-testid="stMainBlockContainer"] {
-        overflow: visible;
-    }
-
-    /* ---------- LINKS ---------- */
+    /* LINKS */
 
     a {
         color: var(--accent) !important;
     }
 
-    /* ---------- RESPONSIVE LAYOUT ---------- */
+    /* RESPONSIVE */
 
     @media (max-width: 900px) {
         .block-container {
-            padding-left: 1.5rem;
-            padding-right: 1.5rem;
-            padding-top: 2.5rem;
+            padding: 2rem 1.5rem 3rem 1.5rem;
         }
     }
 
     @media (max-width: 600px) {
         .block-container {
-            padding-left: 1rem;
-            padding-right: 1rem;
-            padding-top: 2rem;
+            padding: 1.8rem 1rem 2rem 1rem;
         }
 
         h1 {
@@ -288,7 +340,7 @@ def apply_styles():
         }
 
         [data-testid="stMetric"] {
-            padding: 16px;
+            padding: 15px;
         }
     }
 
@@ -296,23 +348,48 @@ def apply_styles():
     """, unsafe_allow_html=True)
 
 
-# --------------------------------------------------
-# SIDEBAR BRANDING
-# --------------------------------------------------
+# ==================================================
+# SIDEBAR NAVIGATION AND BRANDING
+# ==================================================
 
 def show_sidebar():
 
     with st.sidebar:
 
-        st.markdown(
-            '<div class="eyebrow">EDUCATION · ANALYTICS</div>',
-            unsafe_allow_html=True
-        )
-
-        st.title("EduAnalytics")
+        st.markdown("""
+        <div class="brand-container">
+            <div class="brand-logo">E</div>
+            <div class="brand-name">EduAnalytics</div>
+            <div class="brand-tagline">
+                Student Performance Intelligence
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
         st.divider()
 
-        st.caption(
-            "Student Performance Intelligence"
+        st.markdown(
+            '<div class="sidebar-section">MAIN MENU</div>',
+            unsafe_allow_html=True
+        )
+
+        st.page_link(
+            "app.py",
+            label="Dashboard",
+            icon=":material/dashboard:",
+            use_container_width=True
+        )
+
+        st.page_link(
+            "pages/1_Student_Records.py",
+            label="Student Records",
+            icon=":material/school:",
+            use_container_width=True
+        )
+
+        st.page_link(
+            "pages/2_Academic_Analytics.py",
+            label="Academic Analytics",
+            icon=":material/analytics:",
+            use_container_width=True
         )
