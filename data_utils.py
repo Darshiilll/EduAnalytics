@@ -393,3 +393,10 @@ def show_sidebar():
             icon=":material/analytics:",
             use_container_width=True
         )
+
+        st.page_link(
+            "pages/3_Performance_Prediction.py",
+            label="Performance Prediction",
+            icon=":material/psychology:",
+            use_container_width=True
+        )
