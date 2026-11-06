@@ -400,3 +400,15 @@ def show_sidebar():
             icon=":material/psychology:",
             use_container_width=True
         )
+
+        st.page_link(
+    "pages/4_Personalized_Recommendations.py",
+    label="Personalized Recommendations",
+    icon=":material/lightbulb:"
+)
+
+        st.page_link(
+    "pages/5_Student_Risk_Detection.py",
+    label="Student Risk Detection",
+    icon=":material/health_and_safety:"
+)
