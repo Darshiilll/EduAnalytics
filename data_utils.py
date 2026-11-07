@@ -610,6 +610,11 @@ def show_sidebar():
             label="Academic Analytics",
             icon=":material/analytics:",
         )
+        st.page_link(
+    "pages/8_Academic_Progress_Tracking.py",
+    label="Academic Progress Tracking",
+    icon=":material/trending_up:",
+)
 
         # INTELLIGENCE
 

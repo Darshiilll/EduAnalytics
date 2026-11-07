@@ -5,6 +5,8 @@ from pathlib import Path
 from contextlib import contextmanager
 from datetime import datetime
 import re
+import pandas as pd
+import math
 
 
 # =====================================================
@@ -32,6 +34,15 @@ STUDENT_COLUMNS = [
     "english_marks",
     "social_science_marks",
     "computer_marks"
+]
+
+
+EXAM_SUBJECTS = [
+    "math_marks",
+    "science_marks",
+    "english_marks",
+    "social_science_marks",
+    "computer_marks",
 ]
 
 NUMERIC_COLUMNS = [
@@ -102,10 +113,29 @@ def initialize_database():
                 exam_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 exam_name TEXT NOT NULL,
                 exam_date TEXT NOT NULL,
+                max_marks REAL NOT NULL DEFAULT 100,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(exam_name, exam_date)
             )
+            
         """)
+               # Check whether max_marks column exists
+        exam_columns = {
+            row["name"]
+            for row in conn.execute(
+                "PRAGMA table_info(exams)"
+            ).fetchall()
+        }
+
+        # Add max_marks to existing databases if missing
+        if "max_marks" not in exam_columns:
+            conn.execute("""
+                ALTER TABLE exams
+                ADD COLUMN max_marks REAL NOT NULL DEFAULT 100
+            """)
+        
+
+        
 
         # Subject-wise examination results
         conn.execute("""
@@ -140,7 +170,7 @@ def initialize_database():
             )
         """)
 
-        conn.execute("DROP TABLE IF EXISTS activity_logs")
+        
 
 
     return True
@@ -399,46 +429,153 @@ def delete_student(student_id):
 # EXAM OPERATIONS
 # =====================================================
 
-def add_exam(exam_name, exam_date):
+# =====================================================
+# EXAM OPERATIONS
+# =====================================================
+
+def add_exam(exam_name, exam_date, max_marks=100):
+    exam_name = str(exam_name).strip()
+    max_marks = float(max_marks)
+
+    if not exam_name:
+        raise ValueError("Examination name is required.")
+
+    if max_marks <= 0:
+        raise ValueError("Maximum marks must be greater than zero.")
 
     with get_connection() as conn:
-
         conn.execute("""
-            INSERT INTO exams (exam_name, exam_date)
-            VALUES (?, ?)
+            INSERT INTO exams (
+                exam_name,
+                exam_date,
+                max_marks
+            )
+            VALUES (?, ?, ?)
             ON CONFLICT(exam_name, exam_date) DO NOTHING
-        """, (exam_name, exam_date))
+        """, (exam_name, exam_date, max_marks))
 
         row = conn.execute("""
-            SELECT exam_id
+            SELECT exam_id, max_marks
             FROM exams
             WHERE exam_name = ? AND exam_date = ?
         """, (exam_name, exam_date)).fetchone()
 
+        if row["max_marks"] != max_marks:
+            raise ValueError(
+                "An examination with this name and date already exists "
+                "with a different maximum mark. Edit the existing exam "
+                "instead of creating a duplicate."
+            )
+
         return row["exam_id"]
 
 
-def get_all_exams():
+def update_exam_max_marks(exam_id, max_marks):
+    max_marks = float(max_marks)
+
+    if not math.isfinite(max_marks) or max_marks <= 0:
+        raise ValueError(
+            "Maximum marks must be a valid number greater than zero."
+        )
 
     with get_connection() as conn:
+        cursor = conn.execute("""
+            UPDATE exams
+            SET max_marks = ?
+            WHERE exam_id = ?
+        """, (max_marks, exam_id))
 
+        if cursor.rowcount == 0:
+            raise ValueError("Examination not found.")
+
+        invalid_result = conn.execute("""
+            SELECT student_id, subject, marks
+            FROM exam_results
+            WHERE exam_id = ?
+              AND marks > ?
+            LIMIT 1
+        """, (exam_id, max_marks)).fetchone()
+
+        if invalid_result:
+            raise ValueError(
+                f"Cannot reduce maximum marks to {max_marks}. "
+                f"{invalid_result['student_id']} has "
+                f"{invalid_result['marks']} marks in "
+                f"{invalid_result['subject']}."
+            )
+
+    return True
+
+    with get_connection() as conn:
+        cursor = conn.execute("""
+            UPDATE exams
+            SET max_marks = ?
+            WHERE exam_id = ?
+        """, (max_marks, exam_id))
+
+        if cursor.rowcount == 0:
+            raise ValueError("Examination not found.")
+
+        # Existing marks must still fit within the new maximum.
+        invalid_result = conn.execute("""
+            SELECT student_id, subject, marks
+            FROM exam_results
+            WHERE exam_id = ?
+              AND marks > ?
+            LIMIT 1
+        """, (exam_id, max_marks)).fetchone()
+
+        if invalid_result:
+            raise ValueError(
+                f"Cannot reduce maximum marks to {max_marks}. "
+                f"{invalid_result['student_id']} has "
+                f"{invalid_result['marks']} marks in "
+                f"{invalid_result['subject']}."
+            )
+
+
+def get_all_exams():
+    with get_connection() as conn:
         rows = conn.execute("""
-            SELECT *
+            SELECT exam_id, exam_name, exam_date, max_marks
             FROM exams
             ORDER BY exam_date DESC
         """).fetchall()
 
         return [dict(row) for row in rows]
 
-
 def save_exam_result(exam_id, student_id, subject, marks):
 
-    marks = float(marks)
-
-    if not 0 <= marks <= 100:
-        raise ValueError("Marks must be between 0 and 100.")
+    if subject not in EXAM_SUBJECTS:
+        raise ValueError(f"Invalid subject: {subject}")
 
     with get_connection() as conn:
+        exam = conn.execute("""
+            SELECT max_marks
+            FROM exams
+            WHERE exam_id = ?
+        """, (exam_id,)).fetchone()
+
+        if not exam:
+            raise ValueError("Examination not found.")
+
+        if marks is None:
+            # A blank mark means no result has been entered.
+            conn.execute("""
+                DELETE FROM exam_results
+                WHERE exam_id = ?
+                  AND student_id = ?
+                  AND subject = ?
+            """, (exam_id, str(student_id), subject))
+            return True
+
+        marks = float(marks)
+        maximum = float(exam["max_marks"])
+
+        if not 0 <= marks <= maximum:
+            raise ValueError(
+                f"Marks for {subject} must be between 0 and {maximum}."
+            )
 
         conn.execute("""
             INSERT INTO exam_results (
@@ -448,9 +585,9 @@ def save_exam_result(exam_id, student_id, subject, marks):
                 marks
             )
             VALUES (?, ?, ?, ?)
-
             ON CONFLICT(exam_id, student_id, subject)
-            DO UPDATE SET marks = excluded.marks
+            DO UPDATE SET
+                marks = excluded.marks
         """, (
             exam_id,
             str(student_id),
@@ -461,30 +598,149 @@ def save_exam_result(exam_id, student_id, subject, marks):
     return True
 
 
-def get_exam_history(student_id):
+def save_exam_results_bulk(exam_id, results):
+    """
+    Save multiple students and subjects in one database transaction.
+
+    results format:
+    [
+        {
+            "student_id": "STUD0001",
+            "marks": {
+                "math_marks": 80,
+                "science_marks": None
+            }
+        }
+    ]
+
+    None means the subject result is missing and should not be stored.
+    """
 
     with get_connection() as conn:
+        exam = conn.execute("""
+            SELECT max_marks
+            FROM exams
+            WHERE exam_id = ?
+        """, (exam_id,)).fetchone()
 
+        if not exam:
+            raise ValueError("Examination not found.")
+
+        maximum = float(exam["max_marks"])
+
+        for student_result in results:
+            student_id = str(student_result["student_id"])
+
+            student = conn.execute("""
+                SELECT student_id
+                FROM students
+                WHERE student_id = ?
+            """, (student_id,)).fetchone()
+
+            if not student:
+                raise ValueError(
+                    f"Student {student_id} was not found."
+                )
+
+            for subject, marks in student_result["marks"].items():
+                if subject not in EXAM_SUBJECTS:
+                    raise ValueError(f"Invalid subject: {subject}")
+                if marks is None:
+                    conn.execute("""
+                        DELETE FROM exam_results
+                        WHERE exam_id = ?
+                          AND student_id = ?
+                          AND subject = ?
+                    """, (exam_id, student_id, subject))
+                    continue
+
+                marks = float(marks)
+
+                if not 0 <= marks <= maximum:
+                    raise ValueError(
+                        f"{student_id}: {subject} must be between "
+                        f"0 and {maximum}."
+                    )
+
+                conn.execute("""
+                    INSERT INTO exam_results (
+                        exam_id,
+                        student_id,
+                        subject,
+                        marks
+                    )
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(exam_id, student_id, subject)
+                    DO UPDATE SET
+                        marks = excluded.marks
+                """, (
+                    exam_id,
+                    student_id,
+                    subject,
+                    marks
+                ))
+
+    return True
+
+
+def get_exam_results(exam_id, class_name=None):
+    with get_connection() as conn:
+        query = """
+            SELECT
+                exam_results.exam_id,
+                exam_results.student_id,
+                students.name,
+                students.class_name,
+                exam_results.subject,
+                exam_results.marks,
+                exams.exam_name,
+                exams.exam_date,
+                exams.max_marks
+            FROM exam_results
+            JOIN students
+                ON students.student_id = exam_results.student_id
+            JOIN exams
+                ON exams.exam_id = exam_results.exam_id
+            WHERE exam_results.exam_id = ?
+        """
+
+        parameters = [exam_id]
+
+        if class_name is not None:
+            query += " AND students.class_name = ?"
+            parameters.append(class_name)
+
+        query += """
+            ORDER BY students.name, exam_results.subject
+        """
+
+        rows = conn.execute(query, parameters).fetchall()
+
+        return [dict(row) for row in rows]
+
+
+def get_exam_history(student_id):
+    with get_connection() as conn:
         rows = conn.execute("""
             SELECT
                 exams.exam_id,
                 exams.exam_name,
                 exams.exam_date,
+                exams.max_marks,
                 exam_results.subject,
-                exam_results.marks
-
+                exam_results.marks,
+                ROUND(
+                    exam_results.marks * 100.0 / exams.max_marks,
+                    2
+                ) AS percentage
             FROM exam_results
-
             JOIN exams
                 ON exams.exam_id = exam_results.exam_id
-
             WHERE exam_results.student_id = ?
-
-            ORDER BY exams.exam_date ASC
+            ORDER BY exams.exam_date ASC, exams.exam_id ASC
         """, (str(student_id),)).fetchall()
 
         return [dict(row) for row in rows]
-
 
 
 # ====================================================
