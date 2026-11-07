@@ -139,16 +139,8 @@ def initialize_database():
             )
         """)
 
-        # Activity history
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS activity_logs (
-                log_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT,
-                action TEXT NOT NULL,
-                details TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+        conn.execute("DROP TABLE IF EXISTS activity_logs")
+
 
     return True
 
@@ -479,39 +471,8 @@ def get_exam_history(student_id):
         return [dict(row) for row in rows]
 
 
-# =====================================================
-# ACTIVITY LOGS
-# =====================================================
 
-def log_activity(action, details="", username=None):
-
-    with get_connection() as conn:
-
-        conn.execute("""
-            INSERT INTO activity_logs (
-                username,
-                action,
-                details
-            )
-            VALUES (?, ?, ?)
-        """, (username, action, details))
-
-
-def get_activity_logs(limit=100):
-
-    with get_connection() as conn:
-
-        rows = conn.execute("""
-            SELECT *
-            FROM activity_logs
-            ORDER BY created_at DESC
-            LIMIT ?
-        """, (int(limit),)).fetchall()
-
-        return [dict(row) for row in rows]
-
-
-# =====================================================
+# ====================================================
 # DATABASE SETUP
 # =====================================================
 
