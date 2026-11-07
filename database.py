@@ -4,6 +4,7 @@ import csv
 from pathlib import Path
 from contextlib import contextmanager
 from datetime import datetime
+import re
 
 
 # =====================================================
@@ -283,16 +284,26 @@ def get_student(student_id):
         """, (str(student_id),)).fetchone()
 
         return dict(row) if row else None
+    
+
+def validate_student_id(student_id):
+    student_id = str(student_id).strip().upper()
+
+    if not re.fullmatch(r"STUD\d{4}", student_id):
+        raise ValueError(
+            "Invalid Student ID. Use format STUD0001 (STUD followed by 4 digits)."
+        )
+
+    return student_id
+
 
 
 def add_student(student):
 
     required_columns = STUDENT_COLUMNS
 
-    values = {
-        column: student.get(column)
-        for column in required_columns
-    }
+    values = {column: student.get(column) for column in required_columns}
+    values["student_id"] = validate_student_id(values["student_id"])
 
     if not values["student_id"] or not values["name"]:
         raise ValueError("Student ID and name are required.")
@@ -318,6 +329,10 @@ def add_student(student):
 
 
 def update_student(student_id, updates):
+
+    student_id = validate_student_id(student_id)
+
+
 
     allowed_columns = set(STUDENT_COLUMNS) - {"student_id"}
 
