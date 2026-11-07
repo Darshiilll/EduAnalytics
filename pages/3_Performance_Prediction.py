@@ -6,11 +6,6 @@ from pathlib import Path
 
 from data_utils import load_data, apply_styles, show_sidebar
 
-
-# ==================================================
-# 1. PAGE CONFIGURATION
-# ==================================================
-
 st.set_page_config(
     page_title="Performance Prediction | EduAnalytics",
     page_icon="E",
@@ -18,22 +13,50 @@ st.set_page_config(
 )
 
 apply_styles()
-
-df = load_data()
 show_sidebar()
 
+st.markdown("""
+<style>
+.stApp { background:#F4F6FC; color:#243451; }
+h1,h2,h3 { color:#243451 !important; font-family:Manrope,sans-serif; }
+.page-eyebrow {
+    color:#5C7CFA; font-size:.68rem; font-weight:800;
+    letter-spacing:1.5px; margin-bottom:7px;
+}
+.page-subtitle { color:#8792A5; font-size:.86rem; margin-bottom:18px; }
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background:#FFFFFF; border:1px solid #E3E8F2;
+    border-radius:14px; box-shadow:0 3px 12px rgba(36,52,81,.035);
+}
+[data-testid="stMetric"] {
+    background:#FFFFFF; border:1px solid #E3E8F2;
+    border-radius:13px; padding:15px;
+}
+[data-testid="stMetricLabel"] { color:#73819A; }
+[data-testid="stMetricValue"] { color:#243451; font-family:Manrope,sans-serif; }
+.stButton button,.stFormSubmitButton button {
+    background:#5C7CFA; color:white; border:1px solid #5C7CFA;
+    border-radius:9px; font-weight:650;
+}
+.stButton button:hover,.stFormSubmitButton button:hover {
+    background:#4969E6; color:white; border-color:#4969E6;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# ==================================================
-# 2. LOAD TRAINED MODEL
-# ==================================================
+
+# ------------------------------------------------------------
+# DATA AND MODEL
+# ------------------------------------------------------------
+
+df = load_data()
+
+if df is None or df.empty:
+    st.warning("No student records found. Check data/students.csv.")
+    st.stop()
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
-
-MODEL_PATH = (
-    PROJECT_DIR
-    / "models"
-    / "student_performance_model.joblib"
-)
+MODEL_PATH = PROJECT_DIR / "models" / "student_performance_model.joblib"
 
 if not MODEL_PATH.exists():
     st.error(
@@ -42,283 +65,218 @@ if not MODEL_PATH.exists():
     )
     st.stop()
 
-model = joblib.load(MODEL_PATH)
+try:
+    model = joblib.load(MODEL_PATH)
+except Exception as exc:
+    st.error(f"The prediction model could not be loaded: {exc}")
+    st.stop()
 
 
-# ==================================================
-# 3. PAGE HEADER
-# ==================================================
+# ------------------------------------------------------------
+# HEADER
+# ------------------------------------------------------------
 
+st.markdown('<div class="page-eyebrow">INTELLIGENCE / MACHINE LEARNING</div>',
+            unsafe_allow_html=True)
+st.title("Performance Prediction")
 st.markdown(
-    '<div class="eyebrow">WORKSPACE / PREDICTION</div>',
+    '<div class="page-subtitle">Estimate academic performance using '
+    'attendance and daily study hours.</div>',
     unsafe_allow_html=True
 )
 
-st.title("Student Performance Prediction")
 
-st.markdown(
-    """
-    <p class="subtitle">
-        Estimate academic performance using attendance
-        and daily study hours.
-    </p>
-    """,
-    unsafe_allow_html=True
-)
+# ------------------------------------------------------------
+# MODEL OVERVIEW
+# ------------------------------------------------------------
+
+st.markdown('<div class="page-eyebrow">PREDICTION MODEL</div>',
+            unsafe_allow_html=True)
+st.subheader("Model Overview")
+
+m1, m2, m3 = st.columns(3)
+m1.metric("Model Type", "Linear Regression")
+m2.metric("Evaluation Training Set", "80 records")
+m3.metric("Test R² Score", "0.578")
 
 st.caption(
-    "Enter student details below to generate an estimated "
-    "average academic score using our trained machine learning model."
+    "The model was evaluated using an 80/20 train-test split. "
+    "The saved final model was subsequently fitted using all available records."
 )
 
 
-# ==================================================
-# 4. MODEL OVERVIEW
-# ==================================================
+# ------------------------------------------------------------
+# INPUT FORM
+# ------------------------------------------------------------
 
-st.divider()
-
-st.markdown(
-    '<div class="eyebrow">MACHINE LEARNING</div>',
-    unsafe_allow_html=True
-)
-
-st.subheader("Prediction Model")
-
-col1, col2, col3 = st.columns(3, gap="medium")
-
-with col1:
-    st.metric(
-        "Model",
-        "Linear Regression"
-    )
-
-with col2:
-    st.metric(
-        "Training Records",
-        "80"
-    )
-
-with col3:
-    st.metric(
-        "Test R² Score",
-        "0.578"
-    )
-
-
-# ==================================================
-# 5. PREDICTION INPUTS
-# ==================================================
-
-st.divider()
-
-st.markdown(
-    '<div class="eyebrow">STUDENT INPUTS</div>',
-    unsafe_allow_html=True
-)
-
+st.markdown('<div class="page-eyebrow">STUDENT INPUTS</div>',
+            unsafe_allow_html=True)
 st.subheader("Enter Student Information")
-
 st.caption(
-    "Adjust the values to explore how the model estimates "
-    "student academic performance."
+    "Adjust the inputs to explore how the model estimates academic performance."
 )
 
-with st.form("prediction_form"):
+with st.container(border=True):
+    with st.form("prediction_form"):
+        st.markdown("**Learning habits**")
 
-    col1, col2 = st.columns(2, gap="large")
+        col1, col2 = st.columns(2, gap="large")
 
-    with col1:
-        attendance = st.slider(
-            "Attendance Percentage",
-            min_value=0,
-            max_value=100,
-            value=75,
-            step=1,
-            help="Enter the student's attendance percentage."
+        with col1:
+            attendance = st.slider(
+                "Attendance Percentage",
+                min_value=0,
+                max_value=100,
+                value=75,
+                step=1,
+                help="Enter the student's attendance percentage."
+            )
+
+        with col2:
+            study_hours = st.slider(
+                "Daily Study Hours",
+                min_value=0.0,
+                max_value=12.0,
+                value=3.0,
+                step=0.5,
+                help="Average number of hours spent studying daily."
+            )
+
+        predict_button = st.form_submit_button(
+            "Generate Prediction",
+            use_container_width=True
         )
 
-    with col2:
-        study_hours = st.slider(
-            "Daily Study Hours",
-            min_value=0.0,
-            max_value=12.0,
-            value=3.0,
-            step=0.5,
-            help="Average number of hours spent studying daily."
-        )
 
-    predict_button = st.form_submit_button(
-        "Generate Prediction",
-        use_container_width=True
-    )
-
-
-# ==================================================
-# 6. GENERATE PREDICTION
-# ==================================================
+# ------------------------------------------------------------
+# PREDICTION
+# ------------------------------------------------------------
 
 if predict_button:
 
     input_data = pd.DataFrame(
         [[attendance, study_hours]],
-        columns=[
-            "attendance",
-            "study_hours"
-        ]
+        columns=["attendance", "study_hours"]
     )
 
-    predicted_score = model.predict(input_data)[0]
+    predicted_score = float(model.predict(input_data)[0])
+    predicted_score = max(0, min(100, predicted_score))
+    predicted_score = round(predicted_score, 1)
 
-    # Keep estimated marks within the valid score range
-    predicted_score = max(
-        0,
-        min(100, predicted_score)
-    )
+    dataset_average = round(float(df["average_marks"].mean()), 1)
+    difference = round(predicted_score - dataset_average, 1)
 
-    predicted_score = round(
-        float(predicted_score),
-        1
-    )
-
-    dataset_average = round(
-        float(df["average_marks"].mean()),
-        1
-    )
-
-    # Performance category
     if predicted_score >= 70:
         category = "Strong Performance"
-        category_color = "#52745A"
+        category_color = "#328B69"
+        category_bg = "#E5F6EE"
         recommendation = (
             "The estimated performance is strong. "
             "Continue maintaining consistent study habits."
         )
-
     elif predicted_score >= 50:
         category = "Moderate Performance"
-        category_color = "#C4A779"
+        category_color = "#A97822"
+        category_bg = "#FFF4DD"
         recommendation = (
             "The estimated performance is moderate. "
             "Consistent revision and study habits may help."
         )
-
     else:
         category = "Needs Improvement"
-        category_color = "#B58B83"
+        category_color = "#C34E5B"
+        category_bg = "#FCEBED"
         recommendation = (
-            "The estimated performance indicates a need "
-            "for additional academic support and regular revision."
+            "The estimate indicates a need for additional academic "
+            "support and regular revision."
         )
 
-    difference = predicted_score - dataset_average
+    st.markdown('<div class="page-eyebrow">PREDICTION RESULTS</div>',
+                unsafe_allow_html=True)
+    st.subheader("Estimated Academic Performance")
+
+    r1, r2, r3 = st.columns(3)
+    r1.metric("Predicted Average Marks", f"{predicted_score}/100")
+    r2.metric("Dataset Average", f"{dataset_average}/100")
+    r3.metric("Difference from Average", f"{difference:+.1f} marks")
+
+    with st.container(border=True):
+        st.markdown(
+            f"""
+            <div style="background:{category_bg};border-radius:12px;
+            padding:20px;border:1px solid #E3E8F2;">
+                <div style="font-size:.68rem;letter-spacing:1.4px;
+                color:#73819A;font-weight:800;">PERFORMANCE CATEGORY</div>
+                <div style="font-family:Manrope,sans-serif;font-size:1.5rem;
+                font-weight:800;color:{category_color};margin:8px 0;">
+                    {category}
+                </div>
+                <div style="font-size:.84rem;color:#52617A;">
+                    {recommendation}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.markdown("")
+
+        progress_col, score_col = st.columns([3, 1])
+        with progress_col:
+            st.progress(predicted_score / 100)
+        with score_col:
+            st.markdown(
+                f"<div style='text-align:right;color:#243451;"
+                f"font-weight:750;'>{predicted_score:.1f}%</div>",
+                unsafe_allow_html=True
+            )
+
+    st.info(
+        "This result is a model-generated estimate, not a guaranteed exam score. "
+        "Actual academic performance can depend on many factors not included "
+        "in this model."
+    )
 
 
-    # ==================================================
-    # 7. DISPLAY RESULTS
-    # ==================================================
+# ------------------------------------------------------------
+# MODEL INFORMATION
+# ------------------------------------------------------------
+
+st.markdown('<div class="page-eyebrow">MODEL INFORMATION</div>',
+            unsafe_allow_html=True)
+st.subheader("Understanding the Prediction")
+
+with st.container(border=True):
+    st.markdown("**Input features**")
+
+    f1, f2 = st.columns(2)
+
+    with f1:
+        st.markdown("**Attendance**")
+        st.caption("Student attendance percentage.")
+
+    with f2:
+        st.markdown("**Study Hours**")
+        st.caption("Average number of hours spent studying daily.")
 
     st.divider()
 
-    st.markdown(
-        '<div class="eyebrow">PREDICTION RESULTS</div>',
-        unsafe_allow_html=True
+    st.markdown("**How it works**")
+    st.write(
+        "Linear Regression estimates the relationship between the two input "
+        "features and average marks in the training dataset."
     )
 
-    st.subheader("Estimated Academic Performance")
-
-    result_col1, result_col2, result_col3 = st.columns(3)
-
-    with result_col1:
-        st.metric(
-            "Predicted Average Marks",
-            f"{predicted_score}/100"
-        )
-
-    with result_col2:
-        st.metric(
-            "Dataset Average",
-            f"{dataset_average}/100"
-        )
-
-    with result_col3:
-        st.metric(
-            "Difference from Average",
-            f"{difference:+.1f} marks"
-        )
-
-    st.markdown(
-        f"""
-        <div style="
-            background:#FFFFFF;
-            border:1px solid #E5E7DF;
-            border-left:5px solid {category_color};
-            border-radius:10px;
-            padding:22px;
-            margin-top:20px;
-        ">
-            <div style="
-                color:#777D73;
-                font-size:12px;
-                letter-spacing:2px;
-                font-weight:600;
-                margin-bottom:10px;
-            ">
-                PERFORMANCE CATEGORY
-            </div>
-            <div style="
-                color:{category_color};
-                font-size:25px;
-                font-weight:700;
-                margin-bottom:8px;
-            ">
-                {category}
-            </div>
-            <div style="
-                color:#777D73;
-                font-size:14px;
-            ">
-                {recommendation}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
+    st.markdown("**Important limitations**")
+    st.write(
+        "The model uses a relatively small dataset and only two input features. "
+        "Its output should be treated as an estimate for exploration, not as "
+        "a definitive prediction of a student's future examination result."
     )
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    st.info(
-        "This result is a model-generated estimate, not a guaranteed "
-        "exam score. Actual academic performance can depend on many "
-        "other factors not included in this model."
-    )
-
-
-# ==================================================
-# 8. MODEL LIMITATIONS
-# ==================================================
-
-st.divider()
-
-st.markdown(
-    '<div class="eyebrow">MODEL INFORMATION</div>',
-    unsafe_allow_html=True
-)
-
-st.subheader("Understanding the Prediction")
-
-st.write(
-    """
-    This model uses two input features:
-
-    - **Attendance:** Student attendance percentage.
-    - **Study Hours:** Average daily study time.
-
-    Linear Regression identifies relationships between these inputs
-    and historical average marks in the training dataset.
-    """
-)
-
-st.caption(
-    "EduAnalytics · Student Performance Prediction"
-)
+st.markdown("""
+<div style="text-align:center;color:#9AA4B6;font-size:.74rem;
+padding:22px 0;border-top:1px solid #E3E8F2;margin-top:25px;">
+EduAnalytics · Student Performance Prediction
+</div>
+""", unsafe_allow_html=True)

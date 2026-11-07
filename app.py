@@ -1,4 +1,6 @@
 
+import html
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -10,108 +12,263 @@ from data_utils import (
     show_sidebar,
     SUBJECT_COLUMNS,
     SUBJECT_NAMES,
-    CHART_COLORS,
-    LOGO_PATH
+    LOGO_PATH,
 )
 from risk_engine import assess_student_risk
 
 
-# =========================================================
+# ============================================================
 # PAGE CONFIGURATION
-# =========================================================
+# ============================================================
 
 st.set_page_config(
     page_title="EduAnalytics | Dashboard",
-    page_icon=str(LOGO_PATH) if LOGO_PATH.exists() else "📊",
-    layout="wide"
+    page_icon=str(LOGO_PATH) if LOGO_PATH.exists() else "E",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 apply_styles()
-
-# Dashboard-specific metric adjustment
-st.markdown("""
-<style>
-    [data-testid="stMetricValue"] {
-        font-size: 1.75rem !important;
-        white-space: nowrap !important;
-        overflow: visible !important;
-        text-overflow: clip !important;
-    }
-
-    [data-testid="stMetric"] {
-        min-width: 0 !important;
-        overflow: visible !important;
-    }
-
-    [data-testid="stMetricLabel"] {
-        white-space: normal !important;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-df = load_data()
 show_sidebar()
 
 
-# =========================================================
-# CONSTANTS
-# =========================================================
+# ============================================================
+# DASHBOARD STYLING
+# ============================================================
 
-TEXT_COLOR = "#252923"
-MUTED_COLOR = "#777D73"
-GRID_COLOR = "#E5E7DF"
+st.markdown(
+    """
+<style>
+.block-container {
+    padding-top: 1.15rem !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+    max-width: 1800px !important;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #243451;
+    font-family: 'Manrope', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 0.35rem 0 1rem 0;
+    border-bottom: 1px solid #E3E8F2;
+    margin-bottom: 1.25rem;
+}
+
+.page-heading {
+    font-family: 'Manrope', sans-serif;
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: #243451;
+    letter-spacing: -0.8px;
+    margin: 0 0 0.25rem 0;
+}
+
+.page-description {
+    color: #7C879C;
+    font-size: 0.82rem;
+    margin-bottom: 1.2rem;
+}
+
+.section-heading {
+    color: #243451;
+    font-family: 'Manrope', sans-serif;
+    font-size: 1rem;
+    font-weight: 750;
+    margin-bottom: 0.75rem;
+}
+
+.section-caption {
+    color: #8792A5;
+    font-size: 0.72rem;
+    margin-top: -0.45rem;
+    margin-bottom: 0.8rem;
+}
+
+.metric-card {
+    min-height: 112px;
+    padding: 15px 16px;
+    border-radius: 15px;
+    border: 1px solid #E3E8F2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.metric-label {
+    font-size: 0.75rem;
+    color: #52617A;
+    font-weight: 600;
+}
+
+.metric-value {
+    color: #243451;
+    font-family: 'Manrope', sans-serif;
+    font-size: 1.65rem;
+    font-weight: 800;
+    letter-spacing: -0.7px;
+    margin-top: 9px;
+}
+
+.metric-note {
+    font-size: 0.69rem;
+    color: #73819A;
+    margin-top: 3px;
+}
+
+.insight-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 11px 10px;
+    border: 1px solid #E7EBF3;
+    border-radius: 11px;
+    margin-bottom: 9px;
+    background: #FAFBFE;
+}
+
+.insight-marker {
+    width: 29px;
+    height: 29px;
+    min-width: 29px;
+    border-radius: 9px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.insight-title {
+    color: #26334D;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.insight-description {
+    color: #8792A5;
+    font-size: 0.67rem;
+    margin-top: 3px;
+    line-height: 1.4;
+}
+
+.student-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: center;
+    padding: 10px 2px;
+    border-bottom: 1px solid #EDF0F5;
+}
+
+.student-name {
+    color: #26334D;
+    font-size: 0.75rem;
+    font-weight: 650;
+}
+
+.student-detail {
+    color: #8792A5;
+    font-size: 0.66rem;
+    margin-top: 2px;
+}
+
+.risk-pill {
+    font-size: 0.63rem;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.risk-high {
+    color: #C34E5B;
+    background: #FCEBED;
+}
+
+.risk-moderate {
+    color: #A97822;
+    background: #FFF4DD;
+}
+
+.panel-note {
+    font-size: 0.69rem;
+    color: #8792A5;
+    line-height: 1.5;
+    margin-top: 10px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    margin: 10px 0;
+}
+
+.legend-dot {
+    width: 9px;
+    height: 9px;
+    min-width: 9px;
+    border-radius: 50%;
+    margin-top: 3px;
+}
+
+.legend-label {
+    color: #52617A;
+    font-size: 0.65rem;
+    line-height: 1.3;
+}
+
+.legend-value {
+    color: #243451;
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+[data-testid="stVerticalBlockBorderWrapper"] {
+    border-radius: 14px;
+    border-color: #E3E8F2;
+    background: #FFFFFF;
+    box-shadow: 0 3px 12px rgba(36, 52, 81, 0.035);
+}
+
+[data-testid="stPlotlyChart"] {
+    margin-top: -5px;
+}
+
+@media (max-width: 768px) {
+    .block-container {
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
+    }
+
+    .page-heading {
+        font-size: 1.4rem;
+    }
+}
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
 
-# =========================================================
-# CHART STYLING
-# =========================================================
+# ============================================================
+# LOAD AND VALIDATE DATA
+# ============================================================
 
-def style_chart(fig, height=350):
-
-    fig.update_layout(
-        height=height,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(
-            family="DM Sans, sans-serif",
-            color=TEXT_COLOR,
-            size=12
-        ),
-        margin=dict(l=15, r=25, t=25, b=15),
-        hoverlabel=dict(
-            bgcolor="white",
-            font_size=12,
-            font_family="DM Sans"
-        )
-    )
-
-    fig.update_xaxes(
-        showgrid=False,
-        linecolor=GRID_COLOR,
-        tickfont=dict(color=MUTED_COLOR)
-    )
-
-    fig.update_yaxes(
-        showgrid=True,
-        gridcolor=GRID_COLOR,
-        zeroline=False,
-        tickfont=dict(color=MUTED_COLOR)
-    )
-
-    return fig
-
-
-# =========================================================
-# DATA VALIDATION
-# =========================================================
+df = load_data()
 
 if df is None or df.empty:
-
     st.warning(
         "No student records are available. "
         "Please check data/students.csv."
     )
-
     st.stop()
 
 
@@ -123,46 +280,26 @@ required_columns = [
     "average_marks",
     "attendance",
     "study_hours",
-    *SUBJECT_COLUMNS
+    *SUBJECT_COLUMNS,
 ]
 
 missing_columns = [
-    col for col in required_columns
-    if col not in df.columns
+    column
+    for column in required_columns
+    if column not in df.columns
 ]
 
 if missing_columns:
-
     st.error(
         "Missing required dataset columns: "
         + ", ".join(missing_columns)
     )
-
     st.stop()
 
 
-# =========================================================
-# PAGE HEADER
-# =========================================================
-
-st.markdown(
-    """
-    <div class="eyebrow">OVERVIEW</div>
-    <h1>Dashboard</h1>
-    <p class="subtitle">
-        Monitor student performance, academic progress,
-        and attendance across all classes.
-    </p>
-    """,
-    unsafe_allow_html=True
-)
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-
-# =========================================================
-# STUDENT RISK ASSESSMENT
-# =========================================================
+# ============================================================
+# CALCULATE RISK ASSESSMENTS
+# ============================================================
 
 risk_records = []
 
@@ -174,24 +311,26 @@ for _, student in df.iterrows():
         "student_id": student["student_id"],
         "name": student["name"],
         "class_name": student["class_name"],
+        "average_marks": student["average_marks"],
+        "attendance": student["attendance"],
         "risk_score": result["risk_score"],
         "risk_level": result["risk_level"],
-        "risk_factors": result["risk_factors"]
+        "risk_factors": result["risk_factors"],
     })
 
 
 risk_df = pd.DataFrame(risk_records)
 
 
-# =========================================================
-# KEY PERFORMANCE INDICATORS
-# =========================================================
+# ============================================================
+# DASHBOARD METRICS
+# ============================================================
 
 total_students = len(df)
 
-average_score = float(
-    df["average_marks"].mean()
-)
+average_score = float(df["average_marks"].mean())
+
+average_attendance = float(df["attendance"].mean())
 
 pass_count = int(
     (df["average_marks"] >= 40).sum()
@@ -200,10 +339,6 @@ pass_count = int(
 pass_rate = (
     pass_count / total_students * 100
     if total_students else 0
-)
-
-average_attendance = float(
-    df["attendance"].mean()
 )
 
 high_risk_count = int(
@@ -218,731 +353,945 @@ low_risk_count = int(
     (risk_df["risk_level"] == "Low").sum()
 )
 
+low_attendance_count = int(
+    (df["attendance"] < 75).sum()
+)
+
+below_pass_count = int(
+    (df["average_marks"] < 40).sum()
+)
+
+
+# ============================================================
+# TOP NAVIGATION AND PAGE HEADER
+# ============================================================
 
 st.markdown(
-    '<div class="eyebrow">KEY PERFORMANCE INDICATORS</div>',
-    unsafe_allow_html=True
+    """
+    <div class="topbar">
+        <span style="font-size:1.05rem;">Dashboard</span>
+        <span style="color:#B8C1D1;">/</span>
+        <span style="color:#8792A5;font-weight:500;">
+            Overview
+        </span>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
-# Give the Average Score card slightly more width.
-k1, k2, k3, k4 = st.columns(
-    [1, 1.15, 1, 1],
-    gap="medium"
+header_col, search_col = st.columns(
+    [1.8, 1],
+    vertical_alignment="center",
 )
 
-with k1:
-    st.metric(
-        "Total Students",
-        f"{total_students:,}"
+with header_col:
+
+    st.markdown(
+        '<div class="page-heading">Dashboard Overview</div>',
+        unsafe_allow_html=True,
     )
 
-with k2:
-    st.metric(
-        "Average Score",
-        f"{average_score:.1f}/100"
+    st.markdown(
+        """
+        <div class="page-description">
+            Monitor academic performance, identify students
+            needing support, and explore learning outcomes.
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-with k3:
-    st.metric(
-        "Pass Rate",
-        f"{pass_rate:.1f}%"
-    )
+with search_col:
 
-with k4:
-    st.metric(
-        "Attendance",
-        f"{average_attendance:.1f}%"
+    search_query = st.text_input(
+        "Search students",
+        placeholder="Search student name or ID...",
+        label_visibility="collapsed",
+        key="dashboard_student_search",
     )
 
 
-# =========================================================
-# SUBJECT-WISE PERFORMANCE
-# =========================================================
+# ============================================================
+# SEARCH RESULTS
+# ============================================================
 
-st.markdown("<br>", unsafe_allow_html=True)
+if search_query.strip():
 
-st.markdown(
-    '<div class="eyebrow">ACADEMIC PERFORMANCE</div>',
-    unsafe_allow_html=True
-)
-
-st.subheader("Subject-wise Performance")
-
-
-subject_averages = (
-    df[SUBJECT_COLUMNS]
-    .mean()
-    .rename(index=SUBJECT_NAMES)
-    .reset_index()
-)
-
-subject_averages.columns = [
-    "Subject",
-    "Average Marks"
-]
-
-subject_order = [
-    "Computer",
-    "Social Science",
-    "English",
-    "Science",
-    "Mathematics"
-]
-
-fig_subjects = px.bar(
-    subject_averages,
-    x="Average Marks",
-    y="Subject",
-    orientation="h",
-    color="Subject",
-    color_discrete_sequence=CHART_COLORS,
-    text_auto=".1f"
-)
-
-fig_subjects.update_traces(
-    marker_line_width=0,
-    textposition="outside",
-    textfont=dict(
-        family="DM Sans",
-        size=12,
-        color=TEXT_COLOR
-    ),
-    cliponaxis=False
-)
-
-fig_subjects.update_layout(
-    yaxis=dict(
-        categoryorder="array",
-        categoryarray=subject_order,
-        title=None
-    ),
-    xaxis=dict(
-        title=None,
-        range=[
-            0,
-            max(
-                100,
-                float(subject_averages["Average Marks"].max()) + 12
-            )
-        ]
-    ),
-    showlegend=False
-)
-
-fig_subjects = style_chart(
-    fig_subjects,
-    height=370
-)
-
-fig_subjects.update_xaxes(
-    title=None,
-    range=[
-        0,
-        max(
-            100,
-            float(subject_averages["Average Marks"].max()) + 12
+    search_results = df[
+        df["name"].astype(str).str.contains(
+            search_query,
+            case=False,
+            na=False,
         )
-    ],
-    showgrid=True,
-    gridcolor=GRID_COLOR
-)
-
-fig_subjects.update_yaxes(
-    title=None,
-    showgrid=False,
-    categoryorder="array",
-    categoryarray=subject_order
-)
-
-st.plotly_chart(
-    fig_subjects,
-    use_container_width=True,
-    config={"displayModeBar": False}
-)
-
-
-# =========================================================
-# CLASS-WISE PERFORMANCE AND PASS DISTRIBUTION
-# =========================================================
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-left_col, right_col = st.columns(
-    2,
-    gap="large"
-)
-
-
-# CLASS-WISE PERFORMANCE
-
-with left_col:
-
-    st.subheader("Class-wise Performance")
-
-    class_average = (
-        df.groupby("class_name")["average_marks"]
-        .mean()
-        .reset_index()
-        .sort_values("class_name")
-    )
-
-    fig_class = px.bar(
-        class_average,
-        x="class_name",
-        y="average_marks",
-        color_discrete_sequence=["#52745A"],
-        text_auto=".1f"
-    )
-
-    fig_class.update_traces(
-        marker_line_width=0,
-        textposition="outside",
-        cliponaxis=False
-    )
-
-    fig_class = style_chart(
-        fig_class,
-        height=330
-    )
-
-    fig_class.update_xaxes(
-        title=None
-    )
-
-    fig_class.update_yaxes(
-        title=None,
-        range=[
-            0,
-            max(
-                100,
-                float(class_average["average_marks"].max()) + 12
-            )
-        ]
-    )
-
-    st.plotly_chart(
-        fig_class,
-        use_container_width=True,
-        config={"displayModeBar": False}
-    )
-
-
-# PASS DISTRIBUTION
-
-with right_col:
-
-    st.subheader("Pass Distribution")
-
-    passed = int(
-        (df["average_marks"] >= 40).sum()
-    )
-
-    failed = total_students - passed
-
-    fig_pass = go.Figure(
-        data=[
-            go.Pie(
-                labels=["Passed", "Below Pass Mark"],
-                values=[passed, failed],
-                hole=0.68,
-                marker=dict(
-                    colors=[
-                        "#52745A",
-                        "#C4A779"
-                    ],
-                    line=dict(
-                        color="white",
-                        width=4
-                    )
-                ),
-                textinfo="none",
-                hovertemplate=(
-                    "%{label}<br>"
-                    "Students: %{value}<br>"
-                    "Percentage: %{percent}"
-                    "<extra></extra>"
-                ),
-                sort=False
-            )
-        ]
-    )
-
-    fig_pass.update_layout(
-        annotations=[
-            dict(
-                text=f"<b>{total_students}</b><br>Students",
-                x=0.5,
-                y=0.5,
-                font=dict(
-                    size=19,
-                    color=TEXT_COLOR,
-                    family="Manrope"
-                ),
-                showarrow=False
-            )
-        ],
-        showlegend=True,
-        legend=dict(
-            orientation="h",
-            x=0.5,
-            xanchor="center",
-            y=-0.08,
-            yanchor="top",
-            font=dict(
-                family="DM Sans",
-                size=13,
-                color=TEXT_COLOR
-            )
-        ),
-        margin=dict(
-            l=15,
-            r=15,
-            t=25,
-            b=45
+        |
+        df["student_id"].astype(str).str.contains(
+            search_query,
+            case=False,
+            na=False,
         )
-    )
-
-    fig_pass = style_chart(
-        fig_pass,
-        height=350
-    )
-
-    fig_pass.update_layout(
-        showlegend=True,
-        annotations=[
-            dict(
-                text=f"<b>{total_students}</b><br>Students",
-                x=0.5,
-                y=0.5,
-                font=dict(
-                    size=19,
-                    color=TEXT_COLOR,
-                    family="Manrope"
-                ),
-                showarrow=False
-            )
-        ],
-        legend=dict(
-            orientation="h",
-            x=0.5,
-            xanchor="center",
-            y=-0.08,
-            yanchor="top"
-        ),
-        margin=dict(
-            l=15,
-            r=15,
-            t=25,
-            b=45
-        )
-    )
-
-    st.plotly_chart(
-        fig_pass,
-        use_container_width=True,
-        config={"displayModeBar": False}
-    )
-
-
-# =========================================================
-# STUDENT RISK DISTRIBUTION
-# =========================================================
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-st.markdown(
-    '<div class="eyebrow">STUDENT SUPPORT INSIGHTS</div>',
-    unsafe_allow_html=True
-)
-
-st.subheader("Student Risk Distribution")
-
-
-risk_left, risk_right = st.columns(
-    [1.1, 1],
-    gap="large"
-)
-
-
-# RISK DONUT CHART
-
-with risk_left:
-
-    risk_counts = (
-        risk_df["risk_level"]
-        .value_counts()
-        .reindex(
-            ["High", "Moderate", "Low"],
-            fill_value=0
-        )
-    )
-
-    risk_chart_data = pd.DataFrame({
-        "Risk Level": risk_counts.index,
-        "Students": risk_counts.values
-    })
-
-    fig_risk = px.pie(
-        risk_chart_data,
-        names="Risk Level",
-        values="Students",
-        hole=0.65,
-        color="Risk Level",
-        color_discrete_map={
-            "High": "#B85C5C",
-            "Moderate": "#C49A45",
-            "Low": "#52745A"
-        }
-    )
-
-    fig_risk.update_traces(
-        textinfo="percent",
-        marker=dict(
-            line=dict(
-                color="white",
-                width=3
-            )
-        ),
-        hovertemplate=(
-            "%{label}<br>"
-            "Students: %{value}"
-            "<extra></extra>"
-        )
-    )
-
-    fig_risk.update_layout(
-        annotations=[
-            dict(
-                text=f"<b>{total_students}</b><br>Students",
-                x=0.5,
-                y=0.5,
-                showarrow=False,
-                font=dict(
-                    size=18,
-                    color=TEXT_COLOR,
-                    family="Manrope"
-                )
-            )
-        ],
-        showlegend=True,
-        legend=dict(
-            orientation="h",
-            x=0.5,
-            xanchor="center",
-            y=-0.08
-        ),
-        margin=dict(
-            l=10,
-            r=10,
-            t=20,
-            b=45
-        )
-    )
-
-    fig_risk = style_chart(
-        fig_risk,
-        height=340
-    )
-
-    fig_risk.update_layout(
-        showlegend=True
-    )
-
-    st.plotly_chart(
-        fig_risk,
-        use_container_width=True,
-        config={"displayModeBar": False}
-    )
-
-
-# RISK METRICS
-
-with risk_right:
-
-    st.metric(
-        "High Risk Students",
-        high_risk_count
-    )
-
-    st.metric(
-        "Moderate Risk Students",
-        moderate_risk_count
-    )
-
-    st.metric(
-        "Low Risk Students",
-        low_risk_count
-    )
-
-    st.caption(
-        "Risk categories are based on the initial "
-        "rule-based indicators used in Student Risk Detection."
-    )
-
-
-# =========================================================
-# ATTENDANCE ANALYSIS
-# =========================================================
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-st.markdown(
-    '<div class="eyebrow">ATTENDANCE INSIGHTS</div>',
-    unsafe_allow_html=True
-)
-
-st.subheader("Student Attendance Distribution")
-
-
-fig_attendance = px.histogram(
-    df,
-    x="attendance",
-    nbins=15,
-    color_discrete_sequence=["#91A68A"],
-    labels={
-        "attendance": "Attendance (%)",
-        "count": "Number of Students"
-    }
-)
-
-fig_attendance.update_traces(
-    marker_line_color="white",
-    marker_line_width=1
-)
-
-fig_attendance.update_xaxes(
-    title="Attendance (%)"
-)
-
-fig_attendance.update_yaxes(
-    title="Number of Students"
-)
-
-fig_attendance = style_chart(
-    fig_attendance,
-    height=320
-)
-
-st.plotly_chart(
-    fig_attendance,
-    use_container_width=True,
-    config={"displayModeBar": False}
-)
-
-
-# =========================================================
-# TOP PERFORMING STUDENTS
-# =========================================================
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-st.markdown(
-    '<div class="eyebrow">STUDENT ACHIEVEMENT</div>',
-    unsafe_allow_html=True
-)
-
-st.subheader("Top Performing Students")
-
-
-top_students = (
-    df.sort_values(
-        "average_marks",
-        ascending=False
-    )[
-        [
-            "student_id",
-            "name",
-            "class_name",
-            "average_marks",
-            "attendance"
-        ]
     ]
-    .head(5)
-    .copy()
-    .reset_index(drop=True)
-)
 
-top_students.insert(
-    0,
-    "Rank",
-    range(1, len(top_students) + 1)
-)
+    if search_results.empty:
+        st.info("No matching student records found.")
 
-top_students = top_students.rename(
-    columns={
-        "student_id": "Student ID",
-        "name": "Student Name",
-        "class_name": "Class",
-        "average_marks": "Average Score",
-        "attendance": "Attendance (%)"
-    }
-)
+    else:
 
-top_students["Average Score"] = (
-    top_students["Average Score"].round(1)
-)
+        st.markdown("**Matching student records**")
 
-top_students["Attendance (%)"] = (
-    top_students["Attendance (%)"].round(1)
-)
-
-st.dataframe(
-    top_students,
-    use_container_width=True,
-    hide_index=True
-)
+        st.dataframe(
+            search_results[
+                [
+                    "student_id",
+                    "name",
+                    "class_name",
+                    "average_marks",
+                    "attendance",
+                ]
+            ].rename(
+                columns={
+                    "student_id": "Student ID",
+                    "name": "Student",
+                    "class_name": "Class",
+                    "average_marks": "Average Marks",
+                    "attendance": "Attendance",
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
 
 
-# =========================================================
-# STUDENT RECORDS PREVIEW
-# =========================================================
+# ============================================================
+# MAIN DASHBOARD AND RIGHT PANEL
+# ============================================================
 
-st.markdown("<br>", unsafe_allow_html=True)
-
-st.markdown(
-    '<div class="eyebrow">STUDENT DIRECTORY</div>',
-    unsafe_allow_html=True
-)
-
-st.subheader("Student Records Preview")
-
-
-display_columns = [
-    "student_id",
-    "name",
-    "class_name",
-    "gender",
-    "average_marks",
-    "attendance"
-]
-
-recent_students = df[
-    display_columns
-].head(8).copy()
-
-
-recent_students = recent_students.rename(
-    columns={
-        "student_id": "Student ID",
-        "name": "Student Name",
-        "class_name": "Class",
-        "gender": "Gender",
-        "average_marks": "Average Score",
-        "attendance": "Attendance (%)"
-    }
-)
-
-recent_students["Average Score"] = (
-    recent_students["Average Score"].round(1)
-)
-
-recent_students["Attendance (%)"] = (
-    recent_students["Attendance (%)"].round(1)
-)
-
-st.dataframe(
-    recent_students,
-    use_container_width=True,
-    hide_index=True
+main_column, side_column = st.columns(
+    [7.25, 2.75],
+    gap="medium",
 )
 
 
-# =========================================================
-# QUICK ACTIONS
-# =========================================================
+# ============================================================
+# MAIN DASHBOARD CONTENT
+# ============================================================
 
-st.markdown("<br>", unsafe_allow_html=True)
+with main_column:
 
-st.markdown(
-    '<div class="eyebrow">WORKSPACE</div>',
-    unsafe_allow_html=True
-)
+    # --------------------------------------------------------
+    # KPI CARDS
+    # --------------------------------------------------------
 
-st.subheader("Quick Actions")
+    metric_columns = st.columns(4, gap="small")
+
+    metric_data = [
+        {
+            "label": "Total Students",
+            "value": f"{total_students:,}",
+            "note": "Registered student records",
+            "background": "#E5F3FC",
+        },
+        {
+            "label": "Average Marks",
+            "value": f"{average_score:.1f}%",
+            "note": f"{pass_rate:.1f}% meeting pass mark",
+            "background": "#E9EDFC",
+        },
+        {
+            "label": "At-Risk Students",
+            "value": f"{high_risk_count}",
+            "note": "High-risk classification",
+            "background": "#E4F3FC",
+        },
+        {
+            "label": "Average Attendance",
+            "value": f"{average_attendance:.1f}%",
+            "note": f"{low_attendance_count} below 75% attendance",
+            "background": "#EEEFFD",
+        },
+    ]
+
+    for column, metric in zip(metric_columns, metric_data):
+
+        with column:
+
+            st.markdown(
+                f"""
+                <div class="metric-card"
+                     style="background:{metric['background']};">
+                    <div class="metric-label">
+                        {metric['label']}
+                    </div>
+                    <div>
+                        <div class="metric-value">
+                            {metric['value']}
+                        </div>
+                        <div class="metric-note">
+                            {metric['note']}
+                        </div>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
 
-actions = [
-    (
-        "Student Records",
-        "Browse and manage student information.",
-        "pages/1_Student_Records.py",
-        ":material/school:"
-    ),
-    (
-        "Academic Analytics",
-        "Explore subject and class performance.",
-        "pages/2_Academic_Analytics.py",
-        ":material/analytics:"
-    ),
-    (
-        "Performance Prediction",
-        "Estimate student academic performance.",
-        "pages/3_Performance_Prediction.py",
-        ":material/psychology:"
-    ),
-    (
-        "Personalized Recommendations",
-        "View individual academic guidance.",
-        "pages/4_Personalized_Recommendations.py",
-        ":material/lightbulb:"
-    ),
-    (
-        "Student Risk Detection",
-        "Identify students who may need support.",
-        "pages/5_Student_Risk_Detection.py",
-        ":material/health_and_safety:"
-    ),
-    (
-        "Automated Reports",
-        "Generate downloadable student reports.",
-        "pages/6_Automated_Reports.py",
-        ":material/description:"
+    st.markdown(
+        "<div style='height:12px'></div>",
+        unsafe_allow_html=True,
     )
-]
 
 
-action_columns = st.columns(
-    3,
-    gap="large"
-)
+    # --------------------------------------------------------
+    # PERFORMANCE AND SUBJECT PERFORMANCE
+    # --------------------------------------------------------
 
-for index, action in enumerate(actions):
+    performance_column, subject_column = st.columns(
+        [1.85, 1],
+        gap="small",
+    )
 
-    with action_columns[index % 3]:
+
+    # STUDENT PERFORMANCE PROFILE
+
+    with performance_column:
 
         with st.container(border=True):
 
             st.markdown(
-                f"**{action[0]}**"
+                '<div class="section-heading">Student Performance Overview</div>',
+                unsafe_allow_html=True,
             )
 
-            st.caption(
-                action[1]
+            st.markdown(
+                """
+                <div class="section-caption">
+                    Student average marks, ordered from lowest to highest
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
-            st.page_link(
-                action[2],
-                label=f"Open {action[0]}",
-                icon=action[3]
+            sorted_scores = (
+                df["average_marks"]
+                .sort_values()
+                .reset_index(drop=True)
+            )
+
+            student_positions = list(
+                range(1, len(sorted_scores) + 1)
+            )
+
+            fig_performance = go.Figure()
+
+            fig_performance.add_trace(
+                go.Scatter(
+                    x=student_positions,
+                    y=sorted_scores,
+                    mode="lines",
+                    name="Student average",
+                    line=dict(
+                        color="#5C7CFA",
+                        width=3,
+                        shape="spline",
+                    ),
+                    fill="tozeroy",
+                    fillcolor="rgba(92,124,250,0.08)",
+                    hovertemplate=(
+                        "Student rank: %{x}<br>"
+                        "Average marks: %{y:.1f}%"
+                        "<extra></extra>"
+                    ),
+                )
+            )
+
+            fig_performance.add_hline(
+                y=40,
+                line_dash="dash",
+                line_color="#E5A94B",
+                annotation_text="Pass mark",
+                annotation_position="bottom right",
+                annotation_font_size=10,
+                annotation_font_color="#A97822",
+            )
+
+            fig_performance.update_layout(
+                height=265,
+                margin=dict(l=5, r=10, t=10, b=5),
+                showlegend=False,
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(
+                    family="DM Sans",
+                    color="#52617A",
+                    size=10,
+                ),
+                hovermode="x unified",
+            )
+
+            fig_performance.update_xaxes(
+                title=None,
+                showgrid=False,
+                showline=True,
+                linecolor="#E3E8F2",
+                tickfont=dict(size=9),
+                nticks=6,
+            )
+
+            fig_performance.update_yaxes(
+                title=None,
+                range=[0, 100],
+                ticksuffix="%",
+                gridcolor="#E9EDF5",
+                zeroline=False,
+                tickfont=dict(size=9),
+            )
+
+            st.plotly_chart(
+                fig_performance,
+                use_container_width=True,
+                config={"displayModeBar": False},
             )
 
 
-# =========================================================
+    # SUBJECT PERFORMANCE
+
+    with subject_column:
+
+        with st.container(border=True):
+
+            st.markdown(
+                '<div class="section-heading">Subject Performance</div>',
+                unsafe_allow_html=True,
+            )
+
+            st.markdown(
+                """
+                <div class="section-caption">
+                    Average marks by subject
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            subject_averages = (
+                df[SUBJECT_COLUMNS]
+                .mean()
+                .rename(index=SUBJECT_NAMES)
+                .reset_index()
+            )
+
+            subject_averages.columns = [
+                "Subject",
+                "Average",
+            ]
+
+            subject_averages = subject_averages.sort_values(
+                "Average",
+                ascending=True,
+            )
+
+            subject_colors = [
+                "#A8B6FF",
+                "#8BCDEB",
+                "#B6D8F5",
+                "#5C7CFA",
+                "#8DD9B5",
+            ]
+
+            fig_subjects = go.Figure()
+
+            for index, row in enumerate(
+                subject_averages.itertuples(index=False)
+            ):
+
+                fig_subjects.add_trace(
+                    go.Bar(
+                        x=[row.Average],
+                        y=[row.Subject],
+                        orientation="h",
+                        marker_color=subject_colors[
+                            index % len(subject_colors)
+                        ],
+                        width=0.48,
+                        showlegend=False,
+                        text=[f"{row.Average:.1f}%"],
+                        textposition="outside",
+                        textfont=dict(
+                            size=10,
+                            color="#52617A",
+                        ),
+                        hovertemplate=(
+                            "%{y}<br>"
+                            "Average: %{x:.1f}%"
+                            "<extra></extra>"
+                        ),
+                    )
+                )
+
+            fig_subjects.update_layout(
+                height=265,
+                margin=dict(l=0, r=28, t=8, b=5),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(
+                    family="DM Sans",
+                    color="#52617A",
+                    size=9,
+                ),
+                barmode="overlay",
+            )
+
+            fig_subjects.update_xaxes(
+                range=[0, 115],
+                visible=False,
+                fixedrange=True,
+            )
+
+            fig_subjects.update_yaxes(
+                title=None,
+                showgrid=False,
+                tickfont=dict(size=9),
+                automargin=True,
+            )
+
+            st.plotly_chart(
+                fig_subjects,
+                use_container_width=True,
+                config={"displayModeBar": False},
+            )
+
+
+    # --------------------------------------------------------
+    # CLASS PERFORMANCE AND STUDENT DISTRIBUTION
+    # --------------------------------------------------------
+
+    class_column, distribution_column = st.columns(
+        [1, 1.25],
+        gap="small",
+    )
+
+
+    # CLASS PERFORMANCE
+
+    with class_column:
+
+        with st.container(border=True):
+
+            st.markdown(
+                '<div class="section-heading">Performance by Class</div>',
+                unsafe_allow_html=True,
+            )
+
+            class_data = (
+                df.groupby("class_name")["average_marks"]
+                .mean()
+                .reset_index()
+                .sort_values("class_name")
+            )
+
+            fig_class = px.bar(
+                class_data,
+                x="class_name",
+                y="average_marks",
+                color="class_name",
+                color_discrete_sequence=[
+                    "#A8B6FF",
+                    "#5C7CFA",
+                    "#8BCDEB",
+                    "#B6D8F5",
+                    "#8DD9B5",
+                ],
+                text_auto=".1f",
+            )
+
+            fig_class.update_traces(
+                marker_line_width=0,
+                textposition="outside",
+                cliponaxis=False,
+                textfont=dict(
+                    size=10,
+                    color="#52617A",
+                ),
+            )
+
+            fig_class.update_layout(
+                height=245,
+                showlegend=False,
+                margin=dict(l=5, r=12, t=20, b=5),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(
+                    family="DM Sans",
+                    color="#52617A",
+                    size=10,
+                ),
+            )
+
+            fig_class.update_xaxes(
+                title=None,
+                showgrid=False,
+                tickfont=dict(size=9),
+            )
+
+            fig_class.update_yaxes(
+                title=None,
+                range=[
+                    0,
+                    max(
+                        100,
+                        float(
+                            class_data["average_marks"].max()
+                        ) + 15,
+                    ),
+                ],
+                gridcolor="#E9EDF5",
+                ticksuffix="%",
+                tickfont=dict(size=9),
+            )
+
+            st.plotly_chart(
+                fig_class,
+                use_container_width=True,
+                config={"displayModeBar": False},
+            )
+
+
+    # STUDENT DISTRIBUTION
+
+    with distribution_column:
+
+        with st.container(border=True):
+
+            st.markdown(
+                '<div class="section-heading">Student Distribution by Performance</div>',
+                unsafe_allow_html=True,
+            )
+
+            excellent_count = int(
+                (df["average_marks"] >= 80).sum()
+            )
+
+            good_count = int(
+                (
+                    (df["average_marks"] >= 60)
+                    & (df["average_marks"] < 80)
+                ).sum()
+            )
+
+            average_count = int(
+                (
+                    (df["average_marks"] >= 40)
+                    & (df["average_marks"] < 60)
+                ).sum()
+            )
+
+            support_count = int(
+                (df["average_marks"] < 40).sum()
+            )
+
+            distribution_data = pd.DataFrame({
+                "Category": [
+                    "Excellent (80%+)",
+                    "Good (60–79%)",
+                    "Average (40–59%)",
+                    "Needs Support (<40%)",
+                ],
+                "Students": [
+                    excellent_count,
+                    good_count,
+                    average_count,
+                    support_count,
+                ],
+            })
+
+            distribution_colors = [
+                "#5C7CFA",
+                "#A8B6FF",
+                "#8BCDEB",
+                "#8DD9B5",
+            ]
+
+            fig_distribution = go.Figure(
+                data=[
+                    go.Pie(
+                        labels=distribution_data["Category"],
+                        values=distribution_data["Students"],
+                        hole=0.67,
+                        sort=False,
+                        marker=dict(
+                            colors=distribution_colors,
+                            line=dict(
+                                color="#FFFFFF",
+                                width=3,
+                            ),
+                        ),
+                        textinfo="none",
+                        hovertemplate=(
+                            "%{label}<br>"
+                            "Students: %{value}<br>"
+                            "Share: %{percent}"
+                            "<extra></extra>"
+                        ),
+                    )
+                ]
+            )
+
+            fig_distribution.update_layout(
+                height=245,
+                margin=dict(l=0, r=0, t=5, b=5),
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                showlegend=False,
+                annotations=[
+                    dict(
+                        text=(
+                            f"<b>{total_students}</b>"
+                            "<br><span style='font-size:10px'>Students</span>"
+                        ),
+                        x=0.5,
+                        y=0.5,
+                        showarrow=False,
+                        font=dict(
+                            family="Manrope",
+                            size=19,
+                            color="#243451",
+                        ),
+                    )
+                ],
+            )
+
+            donut_col, legend_col = st.columns(
+                [1, 1.2],
+                vertical_alignment="center",
+            )
+
+            with donut_col:
+
+                st.plotly_chart(
+                    fig_distribution,
+                    use_container_width=True,
+                    config={"displayModeBar": False},
+                )
+
+            with legend_col:
+
+                for index, row in enumerate(
+                    distribution_data.itertuples(index=False)
+                ):
+
+                    percentage = (
+                        row.Students / total_students * 100
+                        if total_students else 0
+                    )
+
+                    # Build HTML without indentation at the start
+                    # of the string to prevent Markdown code rendering.
+
+                    legend_html = (
+                        '<div class="legend-item">'
+                        f'<span class="legend-dot" '
+                        f'style="background:{distribution_colors[index]};">'
+                        '</span>'
+                        '<div>'
+                        f'<div class="legend-label">{html.escape(row.Category)}</div>'
+                        f'<div class="legend-value">'
+                        f'{row.Students} students ({percentage:.1f}%)'
+                        '</div>'
+                        '</div>'
+                        '</div>'
+                    )
+
+                    st.markdown(
+                        legend_html,
+                        unsafe_allow_html=True,
+                    )
+
+
+    # --------------------------------------------------------
+    # TOP PERFORMING STUDENTS
+    # --------------------------------------------------------
+
+    with st.container(border=True):
+
+        st.markdown(
+            '<div class="section-heading">Top Performing Students</div>',
+            unsafe_allow_html=True,
+        )
+
+        top_students = (
+            df.sort_values(
+                "average_marks",
+                ascending=False,
+            )[
+                [
+                    "student_id",
+                    "name",
+                    "class_name",
+                    "average_marks",
+                    "attendance",
+                ]
+            ]
+            .head(5)
+            .copy()
+        )
+
+        top_students = top_students.rename(
+            columns={
+                "student_id": "Student ID",
+                "name": "Student",
+                "class_name": "Class",
+                "average_marks": "Average Marks",
+                "attendance": "Attendance (%)",
+            }
+        )
+
+        top_students["Average Marks"] = (
+            top_students["Average Marks"].round(1)
+        )
+
+        top_students["Attendance (%)"] = (
+            top_students["Attendance (%)"].round(1)
+        )
+
+        st.dataframe(
+            top_students,
+            use_container_width=True,
+            hide_index=True,
+        )
+
+
+# ============================================================
+# RIGHT-HAND INFORMATION PANEL
+# ============================================================
+
+with side_column:
+
+    # --------------------------------------------------------
+    # ACADEMIC INSIGHTS AND ALERTS
+    # --------------------------------------------------------
+
+    with st.container(border=True):
+
+        st.markdown(
+            '<div class="section-heading">Academic Insights & Alerts</div>',
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            f"""
+            <div class="insight-item">
+                <div class="insight-marker"
+                     style="background:#FCEBED;color:#D65D67;">
+                    !
+                </div>
+                <div>
+                    <div class="insight-title">
+                        {high_risk_count} high-risk students
+                    </div>
+                    <div class="insight-description">
+                        May need immediate academic support.
+                    </div>
+                </div>
+            </div>
+
+            <div class="insight-item">
+                <div class="insight-marker"
+                     style="background:#FFF4DD;color:#B9852F;">
+                    !
+                </div>
+                <div>
+                    <div class="insight-title">
+                        {low_attendance_count} students below 75% attendance
+                    </div>
+                    <div class="insight-description">
+                        Attendance follow-up may be useful.
+                    </div>
+                </div>
+            </div>
+
+            <div class="insight-item">
+                <div class="insight-marker"
+                     style="background:#E8F1FC;color:#5279D8;">
+                    i
+                </div>
+                <div>
+                    <div class="insight-title">
+                        {below_pass_count} students below 40 average marks
+                    </div>
+                    <div class="insight-description">
+                        Consider targeted academic support.
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        best_subject = (
+            df[SUBJECT_COLUMNS]
+            .mean()
+            .idxmax()
+        )
+
+        best_subject_name = SUBJECT_NAMES[best_subject]
+
+        best_subject_average = float(
+            df[best_subject].mean()
+        )
+
+        st.markdown(
+            f"""
+            <div class="insight-item">
+                <div class="insight-marker"
+                     style="background:#E5F6EE;color:#328B69;">
+                    +
+                </div>
+                <div>
+                    <div class="insight-title">
+                        Strongest subject: {best_subject_name}
+                    </div>
+                    <div class="insight-description">
+                        Average performance: {best_subject_average:.1f}%.
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+    # --------------------------------------------------------
+    # STUDENTS REQUIRING ATTENTION
+    # --------------------------------------------------------
+
+    with st.container(border=True):
+
+        st.markdown(
+            '<div class="section-heading">Students Requiring Attention</div>',
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            """
+            <div class="section-caption">
+                Based on the current risk assessment
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        attention_students = (
+            risk_df[
+                risk_df["risk_level"].isin(
+                    ["High", "Moderate"]
+                )
+            ]
+            .sort_values(
+                ["risk_score", "average_marks"],
+                ascending=[False, True],
+            )
+            .head(6)
+        )
+
+        if attention_students.empty:
+
+            st.markdown(
+                """
+                <div class="panel-note">
+                    No students currently appear in the high
+                    or moderate risk groups.
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        else:
+
+            for _, student in attention_students.iterrows():
+
+                name = html.escape(str(student["name"]))
+                class_name = html.escape(str(student["class_name"]))
+                risk_level = str(student["risk_level"])
+
+                risk_class = (
+                    "risk-high"
+                    if risk_level == "High"
+                    else "risk-moderate"
+                )
+
+                st.markdown(
+                    f"""
+                    <div class="student-row">
+                        <div>
+                            <div class="student-name">{name}</div>
+                            <div class="student-detail">
+                                Class {class_name}
+                                · {student['average_marks']:.1f}% average
+                            </div>
+                        </div>
+                        <span class="risk-pill {risk_class}">
+                            {risk_level}
+                        </span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+        st.markdown(
+            """
+            <div class="panel-note">
+                Risk categories use the project's current
+                rule-based assessment and are intended as
+                initial support indicators.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+    # --------------------------------------------------------
+    # ACADEMIC SNAPSHOT
+    # --------------------------------------------------------
+
+    with st.container(border=True):
+
+        st.markdown(
+            '<div class="section-heading">Academic Snapshot</div>',
+            unsafe_allow_html=True,
+        )
+
+        st.metric(
+            "Pass Rate",
+            f"{pass_rate:.1f}%",
+        )
+
+        st.metric(
+            "Moderate Risk",
+            moderate_risk_count,
+        )
+
+        st.metric(
+            "Low Risk",
+            low_risk_count,
+        )
+
+
+# ============================================================
 # FOOTER
-# =========================================================
+# ============================================================
 
 st.markdown(
     """
     <div style="
         text-align:center;
-        padding:30px 0 10px 0;
-        color:#777D73;
-        font-size:12px;
-        border-top:1px solid #E5E7DF;
-        margin-top:30px;
+        color:#9AA4B6;
+        font-size:0.74rem;
+        padding:1.5rem 0 0.5rem 0;
+        border-top:1px solid #E3E8F2;
+        margin-top:2rem;
     ">
         EduAnalytics · Student Performance Intelligence
     </div>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
