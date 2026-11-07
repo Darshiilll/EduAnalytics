@@ -5,8 +5,18 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from data_utils import (
-    load_data, apply_styles, show_sidebar,
-    SUBJECT_COLUMNS, SUBJECT_NAMES
+    load_data,
+    apply_styles,
+    show_sidebar,
+    SUBJECT_COLUMNS,
+    SUBJECT_NAMES,
+    refresh_student_data
+)
+
+from database import (
+    add_student,
+    update_student,
+    delete_student
 )
 
 st.set_page_config(
@@ -60,7 +70,7 @@ h1,h2,h3 { color:#243451 !important; font-family:Manrope,sans-serif; }
 df = load_data()
 
 if df is None or df.empty:
-    st.warning("No student records found. Check data/students.csv.")
+    st.warning("No student records found in the database.")
     st.stop()
 
 required = [

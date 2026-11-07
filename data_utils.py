@@ -1,8 +1,18 @@
 
+
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+
+from database import (
+    DATABASE_PATH,
+    STUDENT_COLUMNS,
+    initialize_database,
+    setup_database,
+    get_all_students
+)
+
 
 
 # ============================================================
@@ -73,20 +83,58 @@ SUBJECT_NAMES = {
 # LOAD STUDENT DATA
 # ============================================================
 
-@st.cache_data
+
+# ============================================================
+# LOAD STUDENT DATA FROM SQLITE
+# ============================================================
+
+@st.cache_data(ttl=10)
 def load_data():
 
-    df = pd.read_csv(DATA_PATH)
+    # Check whether this is the first database launch
+    database_exists = DATABASE_PATH.exists()
 
-    if all(
-        column in df.columns
-        for column in SUBJECT_COLUMNS
-    ):
+    if not database_exists:
+        # Create database and migrate existing CSV records
+        setup_database()
+    else:
+        # Ensure database tables exist
+        initialize_database()
+
+    # Fetch student records from SQLite
+    students = get_all_students()
+
+    # Convert database records into a DataFrame
+    df = pd.DataFrame(students)
+
+    if df.empty:
+        df = pd.DataFrame(columns=STUDENT_COLUMNS)
+
+    # Keep the same columns expected by existing pages
+    df = df.reindex(columns=STUDENT_COLUMNS)
+
+    # Ensure subject marks are numeric
+    for column in SUBJECT_COLUMNS:
+        df[column] = pd.to_numeric(
+            df[column],
+            errors="coerce"
+        )
+
+    # Calculate average marks
+    if all(column in df.columns for column in SUBJECT_COLUMNS):
         df["average_marks"] = df[
             SUBJECT_COLUMNS
         ].mean(axis=1)
 
     return df
+
+
+def refresh_student_data():
+    """
+    Clear cached student data after database changes.
+    """
+    st.cache_data.clear()
+
 
 
 # ============================================================
@@ -551,6 +599,11 @@ def show_sidebar():
             label="Student Records",
             icon=":material/people_outline:",
         )
+        st.page_link(
+    "pages/7_Student_Management.py",
+    label="Student Management",
+    icon=":material/manage_accounts:",
+)
 
         st.page_link(
             "pages/2_Academic_Analytics.py",
