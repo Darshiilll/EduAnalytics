@@ -4,13 +4,19 @@ import pandas as pd
 import joblib
 from pathlib import Path
 
-from data_utils import load_data, apply_styles, show_sidebar
+from data_utils import LOGO_PATH, load_data, apply_styles, show_sidebar
 
 st.set_page_config(
     page_title="Performance Prediction | EduAnalytics",
     page_icon="E",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed",
 )
+
+from auth import initialize_auth, require_auth
+
+initialize_auth()
+require_auth()
 
 apply_styles()
 show_sidebar()
@@ -18,28 +24,66 @@ show_sidebar()
 st.markdown("""
 <style>
 .stApp { background:#F4F6FC; color:#243451; }
-h1,h2,h3 { color:#243451 !important; font-family:Manrope,sans-serif; }
+
+h1,h2,h3 {
+    color:#243451 !important;
+    font-family:Manrope,sans-serif;
+}
+
 .page-eyebrow {
-    color:#5C7CFA; font-size:.68rem; font-weight:800;
-    letter-spacing:1.5px; margin-bottom:7px;
+    color:#5C7CFA;
+    font-size:.68rem;
+    font-weight:800;
+    letter-spacing:1.5px;
+    margin-bottom:0;
 }
-.page-subtitle { color:#8792A5; font-size:.86rem; margin-bottom:18px; }
+
+.page-subtitle {
+    color:#8792A5;
+    font-size:.86rem;
+    margin-bottom:18px;
+}
+
+.stMainBlockContainer h1 {
+    margin-top:0 !important;
+    margin-bottom:5px !important;
+}
+
 [data-testid="stVerticalBlockBorderWrapper"] {
-    background:#FFFFFF; border:1px solid #E3E8F2;
-    border-radius:14px; box-shadow:0 3px 12px rgba(36,52,81,.035);
+    background:#FFFFFF;
+    border:1px solid #E3E8F2;
+    border-radius:14px;
+    box-shadow:0 3px 12px rgba(36,52,81,.035);
 }
+
 [data-testid="stMetric"] {
-    background:#FFFFFF; border:1px solid #E3E8F2;
-    border-radius:13px; padding:15px;
+    background:#FFFFFF;
+    border:1px solid #E3E8F2;
+    border-radius:13px;
+    padding:15px;
 }
-[data-testid="stMetricLabel"] { color:#73819A; }
-[data-testid="stMetricValue"] { color:#243451; font-family:Manrope,sans-serif; }
+
+[data-testid="stMetricLabel"] {
+    color:#73819A;
+}
+
+[data-testid="stMetricValue"] {
+    color:#243451;
+    font-family:Manrope,sans-serif;
+}
+
 .stButton button,.stFormSubmitButton button {
-    background:#5C7CFA; color:white; border:1px solid #5C7CFA;
-    border-radius:9px; font-weight:650;
+    background:#5C7CFA;
+    color:white;
+    border:1px solid #5C7CFA;
+    border-radius:9px;
+    font-weight:650;
 }
+
 .stButton button:hover,.stFormSubmitButton button:hover {
-    background:#4969E6; color:white; border-color:#4969E6;
+    background:#4969E6;
+    color:white;
+    border-color:#4969E6;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -76,25 +120,46 @@ except Exception as exc:
 # HEADER
 # ------------------------------------------------------------
 
-st.markdown('<div class="page-eyebrow">INTELLIGENCE / MACHINE LEARNING</div>',
-            unsafe_allow_html=True)
-st.title("Performance Prediction")
+# Eyebrow remains ABOVE the logo
 st.markdown(
-    '<div class="page-subtitle">Estimate academic performance using '
-    'attendance and daily study hours.</div>',
+    '<div class="page-eyebrow">WORKSPACE / PERFORMANCE PREDICTION</div>',
     unsafe_allow_html=True
 )
+
+# Logo and title in the same row with reduced gap
+col1, col2 = st.columns(
+    [1, 8],
+    gap="small",
+    vertical_alignment="center"
+)
+
+with col1:
+    st.image(
+        str(LOGO_PATH),
+        width=120
+    )
+
+with col2:
+    st.title("Performance Prediction")
+    st.caption(
+        "Estimate student academic performance using attendance "
+        "and daily study hours."
+    )
 
 
 # ------------------------------------------------------------
 # MODEL OVERVIEW
 # ------------------------------------------------------------
 
-st.markdown('<div class="page-eyebrow">PREDICTION MODEL</div>',
-            unsafe_allow_html=True)
+st.markdown(
+    '<div class="page-eyebrow">PREDICTION MODEL</div>',
+    unsafe_allow_html=True
+)
+
 st.subheader("Model Overview")
 
 m1, m2, m3 = st.columns(3)
+
 m1.metric("Model Type", "Linear Regression")
 m2.metric("Evaluation Training Set", "80 records")
 m3.metric("Test R² Score", "0.578")
@@ -109,15 +174,21 @@ st.caption(
 # INPUT FORM
 # ------------------------------------------------------------
 
-st.markdown('<div class="page-eyebrow">STUDENT INPUTS</div>',
-            unsafe_allow_html=True)
+st.markdown(
+    '<div class="page-eyebrow">STUDENT INPUTS</div>',
+    unsafe_allow_html=True
+)
+
 st.subheader("Enter Student Information")
+
 st.caption(
     "Adjust the inputs to explore how the model estimates academic performance."
 )
 
 with st.container(border=True):
+
     with st.form("prediction_form"):
+
         st.markdown("**Learning habits**")
 
         col1, col2 = st.columns(2, gap="large")
@@ -174,6 +245,7 @@ if predict_button:
             "The estimated performance is strong. "
             "Continue maintaining consistent study habits."
         )
+
     elif predicted_score >= 50:
         category = "Moderate Performance"
         category_color = "#A97822"
@@ -182,6 +254,7 @@ if predict_button:
             "The estimated performance is moderate. "
             "Consistent revision and study habits may help."
         )
+
     else:
         category = "Needs Improvement"
         category_color = "#C34E5B"
@@ -191,26 +264,33 @@ if predict_button:
             "support and regular revision."
         )
 
-    st.markdown('<div class="page-eyebrow">PREDICTION RESULTS</div>',
-                unsafe_allow_html=True)
+    st.markdown(
+        '<div class="page-eyebrow">PREDICTION RESULTS</div>',
+        unsafe_allow_html=True
+    )
+
     st.subheader("Estimated Academic Performance")
 
     r1, r2, r3 = st.columns(3)
+
     r1.metric("Predicted Average Marks", f"{predicted_score}/100")
     r2.metric("Dataset Average", f"{dataset_average}/100")
     r3.metric("Difference from Average", f"{difference:+.1f} marks")
 
     with st.container(border=True):
+
         st.markdown(
             f"""
             <div style="background:{category_bg};border-radius:12px;
             padding:20px;border:1px solid #E3E8F2;">
                 <div style="font-size:.68rem;letter-spacing:1.4px;
                 color:#73819A;font-weight:800;">PERFORMANCE CATEGORY</div>
+
                 <div style="font-family:Manrope,sans-serif;font-size:1.5rem;
                 font-weight:800;color:{category_color};margin:8px 0;">
                     {category}
                 </div>
+
                 <div style="font-size:.84rem;color:#52617A;">
                     {recommendation}
                 </div>
@@ -222,8 +302,10 @@ if predict_button:
         st.markdown("")
 
         progress_col, score_col = st.columns([3, 1])
+
         with progress_col:
             st.progress(predicted_score / 100)
+
         with score_col:
             st.markdown(
                 f"<div style='text-align:right;color:#243451;"
@@ -242,11 +324,15 @@ if predict_button:
 # MODEL INFORMATION
 # ------------------------------------------------------------
 
-st.markdown('<div class="page-eyebrow">MODEL INFORMATION</div>',
-            unsafe_allow_html=True)
+st.markdown(
+    '<div class="page-eyebrow">MODEL INFORMATION</div>',
+    unsafe_allow_html=True
+)
+
 st.subheader("Understanding the Prediction")
 
 with st.container(border=True):
+
     st.markdown("**Input features**")
 
     f1, f2 = st.columns(2)
@@ -262,21 +348,34 @@ with st.container(border=True):
     st.divider()
 
     st.markdown("**How it works**")
+
     st.write(
         "Linear Regression estimates the relationship between the two input "
         "features and average marks in the training dataset."
     )
 
     st.markdown("**Important limitations**")
+
     st.write(
         "The model uses a relatively small dataset and only two input features. "
         "Its output should be treated as an estimate for exploration, not as "
         "a definitive prediction of a student's future examination result."
     )
 
+
+# ------------------------------------------------------------
+# FOOTER
+# ------------------------------------------------------------
+
 st.markdown("""
-<div style="text-align:center;color:#9AA4B6;font-size:.74rem;
-padding:22px 0;border-top:1px solid #E3E8F2;margin-top:25px;">
+<div style="
+    text-align:center;
+    color:#9AA4B6;
+    font-size:.74rem;
+    padding:22px 0;
+    border-top:1px solid #E3E8F2;
+    margin-top:25px;
+">
 EduAnalytics · Student Performance Prediction
 </div>
 """, unsafe_allow_html=True)

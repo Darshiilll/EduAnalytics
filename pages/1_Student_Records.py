@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from data_utils import (
+    LOGO_PATH,
     load_data,
     apply_styles,
     show_sidebar,
@@ -21,12 +22,31 @@ from database import (
 
 st.set_page_config(
     page_title="Student Records | EduAnalytics",
-    page_icon="E",
-    layout="wide"
+    page_icon="assets/eduanalytics_logo.png",
+    layout="wide",
+    initial_sidebar_state="collapsed",
 )
+
+from auth import initialize_auth, require_auth
+
+initialize_auth()
+require_auth()
+
 
 apply_styles()
 show_sidebar()
+
+st.markdown("""
+<style>
+.page-eyebrow {
+    color: #5C7CFA;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    margin-bottom: 7px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ------------------------------------------------------------
 # PAGE THEME
@@ -84,21 +104,24 @@ if missing:
     st.error(f"Missing required columns: {', '.join(missing)}")
     st.stop()
 
-
 # ------------------------------------------------------------
 # HEADER
 # ------------------------------------------------------------
 
-st.markdown('<div class="page-eyebrow">WORKSPACE / STUDENTS</div>',
-            unsafe_allow_html=True)
-st.title("Student Records")
 st.markdown(
-    '<div class="page-subtitle">Explore student information, academic results, '
-    'and individual performance.</div>',
+    '<div class="page-eyebrow">WORKSPACE / STUDENT RECORDS</div>',
     unsafe_allow_html=True
 )
 
+col1, col2 = st.columns([1, 8], gap="small", vertical_alignment="center")
 
+with col1:
+    st.image(str(LOGO_PATH), width=120)
+
+with col2:
+    st.title("Student Records")
+    st.caption("student directory, academic performance, and learning habits overview.")
+    
 # ------------------------------------------------------------
 # FILTERS
 # ------------------------------------------------------------
