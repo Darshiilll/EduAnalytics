@@ -57,7 +57,7 @@ with tab_create:
         full_name = st.text_input("Teacher Name")
 
         email = st.text_input(
-            "Teacher Email / Username"
+            "Teacher Email"
         )
 
         temporary_password = st.text_input(
