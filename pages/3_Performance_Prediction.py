@@ -278,28 +278,9 @@ if predict_button:
     r3.metric("Difference from Average", f"{difference:+.1f} marks")
 
     with st.container(border=True):
-
-        st.markdown(
-            f"""
-            <div style="background:{category_bg};border-radius:12px;
-            padding:20px;border:1px solid #E3E8F2;">
-                <div style="font-size:.68rem;letter-spacing:1.4px;
-                color:#73819A;font-weight:800;">PERFORMANCE CATEGORY</div>
-
-                <div style="font-family:Manrope,sans-serif;font-size:1.5rem;
-                font-weight:800;color:{category_color};margin:8px 0;">
-                    {category}
-                </div>
-
-                <div style="font-size:.84rem;color:#52617A;">
-                    {recommendation}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-        st.markdown("")
+        st.markdown("**Performance Category**")
+        st.subheader(category)
+        st.write(recommendation)
 
         progress_col, score_col = st.columns([3, 1])
 
@@ -312,7 +293,6 @@ if predict_button:
                 f"font-weight:750;'>{predicted_score:.1f}%</div>",
                 unsafe_allow_html=True
             )
-
     st.info(
         "This result is a model-generated estimate, not a guaranteed exam score. "
         "Actual academic performance can depend on many factors not included "
