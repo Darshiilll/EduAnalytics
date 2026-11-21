@@ -216,12 +216,10 @@ def apply_styles():
            SIDEBAR
         ========================================== */
 
-        [data-testid="stSidebar"] {
-            background-color: #FFFFFF;
-            border-right: 1px solid var(--border);
-            min-width: 250px;
-            max-width: 250px;
-        }
+     [data-testid="stSidebar"] {
+    background-color: #FFFFFF;
+    border-right: 1px solid var(--border);
+}
 
         [data-testid="stSidebar"] > div:first-child {
             padding-top: 0.8rem;
@@ -581,12 +579,36 @@ def show_sidebar():
             unsafe_allow_html=True,
         )
 
+        # SIGNED-IN TEACHER / ADMIN
+        from auth import logout
+
+        current_user = st.session_state.get("auth_user")
+        if current_user:
+            st.markdown(
+                f"**{current_user.get('full_name', 'User')}**  ",
+                unsafe_allow_html=False,
+            )
+            st.caption(
+                f"{current_user.get('role', 'teacher').title()} · "
+                f"{current_user.get('email', '')}"
+            )
+            if st.button("Logout", use_container_width=True, key="sidebar_logout"):
+                logout()
+            st.divider()
+
         # MAIN MENU
 
         st.markdown(
             '<div class="sidebar-section">MAIN MENU</div>',
             unsafe_allow_html=True,
         )
+
+        if current_user and current_user.get("role") == "admin":
+            st.page_link(
+                "pages/0_Teacher_Accounts.py",
+                label="Teacher Accounts",
+                icon=":material/manage_accounts:",
+            )
 
         st.page_link(
             "app.py",

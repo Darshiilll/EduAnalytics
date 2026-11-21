@@ -170,6 +170,30 @@ def initialize_database():
             )
         """)
 
+        # Authentication profile fields (safe migration for existing databases)
+        user_columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(users)").fetchall()
+        }
+
+        if "full_name" not in user_columns:
+            conn.execute("ALTER TABLE users ADD COLUMN full_name TEXT")
+
+        if "is_active" not in user_columns:
+            conn.execute(
+                "ALTER TABLE users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1"
+            )
+        if "must_change_password" not in user_columns:
+         conn.execute(
+        """
+        ALTER TABLE users
+        ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0
+        """
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_users_role ON users(role)"
+        )
+
         
 
 

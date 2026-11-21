@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 
 from data_utils import (
+    LOGO_PATH,
     load_data,
     apply_styles,
     show_sidebar,
@@ -26,21 +27,63 @@ st.set_page_config(
     layout="wide",
 )
 
+from auth import initialize_auth, require_auth
+
+initialize_auth()
+require_auth()
+
 apply_styles()
 show_sidebar()
+
+# ============================================================
+# PAGE THEME
+# ============================================================
+
+st.markdown("""
+<style>
+.stApp {
+    background: #F4F6FC;
+    color: #243451;
+}
+
+h1, h2, h3 {
+    color: #243451 !important;
+    font-family: Manrope, sans-serif;
+}
+
+.page-eyebrow {
+    color: #5C7CFA;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    margin-bottom: 7px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 if "management_message" in st.session_state:
     st.success(st.session_state["management_message"])
     del st.session_state["management_message"]
+
 # ============================================================
 # PAGE HEADER
 # ============================================================
 
-st.title("Student Management")
-
 st.markdown(
-    "Add, update and manage student records in the database."
+    '<div class="page-eyebrow">WORKSPACE / STUDENT MANAGEMENT</div>',
+    unsafe_allow_html=True
 )
+
+col1, col2 = st.columns([1, 8], gap="small", vertical_alignment="center")
+
+with col1:
+    st.image(str(LOGO_PATH), width=120)
+
+with col2:
+    st.title("Student Management")
+    st.caption("Add, update and manage student records in the database.")
+
 
 # ============================================================
 # SUMMARY
