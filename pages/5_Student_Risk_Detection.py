@@ -4,14 +4,20 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-from data_utils import load_data, apply_styles, show_sidebar
+from data_utils import LOGO_PATH, load_data, apply_styles, show_sidebar
 from risk_engine import assess_student_risk
 
 st.set_page_config(
     page_title="Student Risk Detection | EduAnalytics",
     page_icon="E",
     layout="wide",
+    initial_sidebar_state="collapsed",
 )
+
+from auth import initialize_auth, require_auth
+
+initialize_auth()
+require_auth()
 
 apply_styles()
 show_sidebar()
@@ -19,37 +25,101 @@ show_sidebar()
 st.markdown("""
 <style>
 .stApp { background:#F4F6FC; color:#243451; }
-h1,h2,h3 { color:#243451 !important; font-family:Manrope,sans-serif; }
+
+h1,h2,h3 {
+    color:#243451 !important;
+    font-family:Manrope,sans-serif;
+}
+
 .page-eyebrow {
-    color:#5C7CFA; font-size:.68rem; font-weight:800;
-    letter-spacing:1.5px; margin-bottom:7px;
+    color:#5C7CFA;
+    font-size:.68rem;
+    font-weight:800;
+    letter-spacing:1.5px;
+    margin-bottom:0;
 }
-.page-subtitle { color:#8792A5; font-size:.86rem; margin-bottom:18px; }
-.panel-title { color:#243451; font-size:1rem; font-weight:750; }
+
+.page-subtitle {
+    color:#8792A5;
+    font-size:.86rem;
+    margin-bottom:18px;
+}
+
+.panel-title {
+    color:#243451;
+    font-size:1rem;
+    font-weight:750;
+}
+
+.stMainBlockContainer h1 {
+    margin-top:0 !important;
+    margin-bottom:5px !important;
+}
+
 [data-testid="stVerticalBlockBorderWrapper"] {
-    background:#FFFFFF; border:1px solid #E3E8F2;
-    border-radius:14px; box-shadow:0 3px 12px rgba(36,52,81,.035);
+    background:#FFFFFF;
+    border:1px solid #E3E8F2;
+    border-radius:14px;
+    box-shadow:0 3px 12px rgba(36,52,81,.035);
 }
+
 [data-testid="stMetric"] {
-    background:#FFFFFF; border:1px solid #E3E8F2;
-    border-radius:13px; padding:15px;
+    background:#FFFFFF;
+    border:1px solid #E3E8F2;
+    border-radius:13px;
+    padding:15px;
 }
-[data-testid="stMetricLabel"] { color:#73819A; }
-[data-testid="stMetricValue"] { color:#243451; font-family:Manrope,sans-serif; }
+
+[data-testid="stMetricLabel"] {
+    color:#73819A;
+}
+
+[data-testid="stMetricValue"] {
+    color:#243451;
+    font-family:Manrope,sans-serif;
+}
+
 .risk-label {
-    display:inline-block; border-radius:20px;
-    padding:5px 10px; font-size:.68rem; font-weight:750;
+    display:inline-block;
+    border-radius:20px;
+    padding:5px 10px;
+    font-size:.68rem;
+    font-weight:750;
 }
-.risk-high { color:#C34E5B; background:#FCEBED; }
-.risk-moderate { color:#A97822; background:#FFF4DD; }
-.risk-low { color:#328B69; background:#E5F6EE; }
-.detail-text { color:#73819A; font-size:.78rem; line-height:1.6; }
+
+.risk-high {
+    color:#C34E5B;
+    background:#FCEBED;
+}
+
+.risk-moderate {
+    color:#A97822;
+    background:#FFF4DD;
+}
+
+.risk-low {
+    color:#328B69;
+    background:#E5F6EE;
+}
+
+.detail-text {
+    color:#73819A;
+    font-size:.78rem;
+    line-height:1.6;
+}
+
 .stButton button,.stDownloadButton button {
-    background:#5C7CFA; color:white; border:1px solid #5C7CFA;
-    border-radius:9px; font-weight:650;
+    background:#5C7CFA;
+    color:white;
+    border:1px solid #5C7CFA;
+    border-radius:9px;
+    font-weight:650;
 }
+
 .stButton button:hover,.stDownloadButton button:hover {
-    background:#4969E6; color:white; border-color:#4969E6;
+    background:#4969E6;
+    color:white;
+    border-color:#4969E6;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -70,16 +140,31 @@ if df is None or df.empty:
 # HEADER
 # ------------------------------------------------------------
 
+# Eyebrow stays ABOVE the logo
 st.markdown(
-    '<div class="page-eyebrow">INTELLIGENCE / EARLY SUPPORT</div>',
-    unsafe_allow_html=True,
+    '<div class="page-eyebrow">WORKSPACE / RISK DETECTION</div>',
+    unsafe_allow_html=True
 )
-st.title("Student Risk Detection")
-st.markdown(
-    '<div class="page-subtitle">Identify students who may benefit from '
-    'additional academic support using current performance indicators.</div>',
-    unsafe_allow_html=True,
+
+# Logo and title in the same row
+col1, col2 = st.columns(
+    [1, 8],
+    gap="small",
+    vertical_alignment="center"
 )
+
+with col1:
+    st.image(
+        str(LOGO_PATH),
+        width=120
+    )
+
+with col2:
+    st.title("Student Risk Detection")
+    st.caption(
+        "Identify students who may need academic support "
+        "through performance, attendance, and study habit indicators."
+    )
 
 
 # ------------------------------------------------------------
@@ -115,6 +200,7 @@ st.markdown(
     '<div class="page-eyebrow">RISK OVERVIEW</div>',
     unsafe_allow_html=True,
 )
+
 st.subheader("Student Risk Summary")
 
 high_count = int((risk_df["risk_level"] == "High").sum())
@@ -122,6 +208,7 @@ moderate_count = int((risk_df["risk_level"] == "Moderate").sum())
 low_count = int((risk_df["risk_level"] == "Low").sum())
 
 c1, c2, c3, c4 = st.columns(4)
+
 c1.metric("Total Students", len(risk_df))
 c2.metric("High Risk", high_count)
 c3.metric("Moderate Risk", moderate_count)
@@ -136,6 +223,7 @@ st.markdown(
     '<div class="page-eyebrow">RISK DISTRIBUTION</div>',
     unsafe_allow_html=True,
 )
+
 st.subheader("Risk Classification")
 
 distribution = (
@@ -159,6 +247,7 @@ left, right = st.columns([1.5, 1], gap="medium")
 
 with left:
     with st.container(border=True):
+
         fig = go.Figure(
             go.Bar(
                 x=chart_data["Risk Level"],
@@ -172,6 +261,7 @@ with left:
                 cliponaxis=False,
             )
         )
+
         fig.update_layout(
             height=300,
             margin=dict(l=10, r=15, t=20, b=10),
@@ -186,6 +276,7 @@ with left:
             ),
             showlegend=False,
         )
+
         st.plotly_chart(
             fig,
             use_container_width=True,
@@ -194,11 +285,13 @@ with left:
 
 with right:
     with st.container(border=True):
+
         st.markdown("**Risk category breakdown**")
 
         total = len(risk_df)
 
         for level in ["High", "Moderate", "Low"]:
+
             value = int(distribution[level])
             percentage = value / total * 100 if total else 0
 
@@ -230,9 +323,11 @@ st.markdown(
     '<div class="page-eyebrow">STUDENT REGISTER</div>',
     unsafe_allow_html=True,
 )
+
 st.subheader("Find Students by Risk Level")
 
 with st.container(border=True):
+
     f1, f2, f3 = st.columns(3)
 
     with f1:
@@ -249,6 +344,7 @@ with st.container(border=True):
             .unique()
             .tolist()
         )
+
         selected_class = st.selectbox(
             "Class",
             ["All"] + classes,
@@ -274,6 +370,7 @@ if selected_class != "All":
 
 if search_query.strip():
     query = search_query.strip()
+
     filtered_df = filtered_df[
         filtered_df["name"].astype(str).str.contains(
             query, case=False, na=False
@@ -343,6 +440,7 @@ st.markdown(
     '<div class="page-eyebrow">INDIVIDUAL ASSESSMENT</div>',
     unsafe_allow_html=True,
 )
+
 st.subheader("Inspect Student Risk Factors")
 
 if not filtered_df.empty:
@@ -373,10 +471,12 @@ if not filtered_df.empty:
     }[risk_level]
 
     with st.container(border=True):
+
         top_left, top_right = st.columns([3, 1])
 
         with top_left:
             st.markdown(f"### {selected_record['name']}")
+
             st.caption(
                 f"Student ID: {selected_record['student_id']}  |  "
                 f"Class: {selected_record['class_name']}"
@@ -397,6 +497,7 @@ if not filtered_df.empty:
         st.divider()
 
         a, b, c = st.columns(3)
+
         a.metric("Risk Score", selected_record["risk_score"])
         b.metric("Average Marks", f"{selected_record['average_marks']:.1f}%")
         c.metric("Attendance", f"{selected_record['attendance']:.1f}%")
@@ -437,6 +538,7 @@ st.markdown(
     '<div class="page-eyebrow">EXPORT / RISK REGISTER</div>',
     unsafe_allow_html=True,
 )
+
 st.subheader("Download Risk Assessment Report")
 
 report_df = risk_df[
@@ -461,6 +563,7 @@ report_df["weak_subjects"] = risk_df["weak_subjects"].apply(
 )
 
 with st.container(border=True):
+
     st.caption(
         "Export the risk classification and contributing indicators "
         "for all students."
@@ -480,9 +583,20 @@ st.caption(
     "or validated predictions of student outcomes."
 )
 
+
+# ------------------------------------------------------------
+# FOOTER
+# ------------------------------------------------------------
+
 st.markdown("""
-<div style="text-align:center;color:#9AA4B6;font-size:.74rem;
-padding:22px 0;border-top:1px solid #E3E8F2;margin-top:25px;">
+<div style="
+    text-align:center;
+    color:#9AA4B6;
+    font-size:.74rem;
+    padding:22px 0;
+    border-top:1px solid #E3E8F2;
+    margin-top:25px;
+">
 EduAnalytics · Student Risk Intelligence
 </div>
 """, unsafe_allow_html=True)

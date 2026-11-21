@@ -6,7 +6,7 @@ import html
 
 from pathlib import Path
 
-from data_utils import load_data, apply_styles, show_sidebar
+from data_utils import LOGO_PATH, load_data, apply_styles, show_sidebar
 from recommendation_engine import generate_recommendations
 from risk_engine import assess_student_risk
 from report_generator import generate_student_pdf
@@ -15,7 +15,13 @@ st.set_page_config(
     page_title="Automated Reports | EduAnalytics",
     page_icon="E",
     layout="wide",
+    initial_sidebar_state="collapsed",
 )
+
+from auth import initialize_auth, require_auth
+
+initialize_auth()
+require_auth()
 
 apply_styles()
 show_sidebar()
@@ -84,16 +90,28 @@ if df is None or df.empty:
 # ------------------------------------------------------------
 
 st.markdown(
-    '<div class="page-eyebrow">REPORTS / DOCUMENT GENERATION</div>',
-    unsafe_allow_html=True,
+    '<div class="page-eyebrow">WORKSPACE / AUTOMATED REPORTS</div>',
+    unsafe_allow_html=True
 )
-st.title("Automated Student Reports")
-st.markdown(
-    '<div class="page-subtitle">Create detailed student reports '
-    'combining academic performance, risk assessment and '
-    'personalized recommendations.</div>',
-    unsafe_allow_html=True,
+
+col1, col2 = st.columns(
+    [1, 8],
+    gap="small",
+    vertical_alignment="center"
 )
+
+with col1:
+    st.image(
+        str(LOGO_PATH),
+        width=120
+    )
+
+with col2:
+    st.title("Student Reports")
+    st.caption(
+        "Explore student information, academic results, "
+        "and individual performance."
+    )
 
 
 # ------------------------------------------------------------

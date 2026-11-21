@@ -24,9 +24,17 @@ st.set_page_config(
     page_title="EduAnalytics | Dashboard",
     page_icon=str(LOGO_PATH) if LOGO_PATH.exists() else "E",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
+from auth import initialize_auth, render_login_screen, require_auth
+
+initialize_auth()
+if not st.session_state.get("auth_user"):
+    render_login_screen()
+    st.stop()
+
+require_auth()
 apply_styles()
 show_sidebar()
 
@@ -385,20 +393,31 @@ header_col, search_col = st.columns(
 
 with header_col:
 
-    st.markdown(
-        '<div class="page-heading">Dashboard Overview</div>',
-        unsafe_allow_html=True,
+    logo_col, title_col = st.columns(
+        [0.13, 0.87],
+        vertical_alignment="center",
+        gap="small",
     )
 
-    st.markdown(
-        """
-        <div class="page-description">
-            Monitor academic performance, identify students
-            needing support, and explore learning outcomes.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    with logo_col:
+        st.image(str(LOGO_PATH), width=120)
+
+    with title_col:
+
+        st.markdown(
+            '<div class="page-heading">Dashboard Overview</div>',
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            """
+            <div class="page-description">
+                Monitor academic performance, identify students
+                needing support, and explore learning outcomes.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 with search_col:
 
@@ -408,7 +427,6 @@ with search_col:
         label_visibility="collapsed",
         key="dashboard_student_search",
     )
-
 
 # ============================================================
 # SEARCH RESULTS

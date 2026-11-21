@@ -25,19 +25,111 @@ from database import (
 # PAGE CONFIGURATION
 # =====================================================
 
+from pathlib import Path
+
 st.set_page_config(
     page_title="Academic Progress Tracking | EduAnalytics",
-    layout="wide"
+    page_icon="assets/eduanalytics_logo.png",
+    layout="wide",
+    initial_sidebar_state="collapsed",
 )
+
+from auth import initialize_auth, require_auth
+
+initialize_auth()
+require_auth()
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+LOGO_PATH = BASE_DIR / "assets" / "eduanalytics_logo.png"
+
+st.markdown("""
+<style>
+.stApp {
+    background: #F4F6FC;
+    color: #243451;
+}
+
+h1, h2, h3 {
+    color: #243451 !important;
+    font-family: Manrope, sans-serif;
+}
+
+.page-eyebrow {
+    color: #5C7CFA;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    margin-bottom: 7px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 apply_styles()
 show_sidebar()
 
-st.title("Academic Progress Tracking")
+# =====================================================
+# COMPACT PAGE SPACING
+# =====================================================
+
+st.markdown("""
+<style>
+
+/* Reduce spacing between main page sections */
+[data-testid="stMainBlockContainer"] > div[data-testid="stVerticalBlock"] {
+    gap: 0.55rem !important;
+}
+
+/* Reduce divider margins */
+hr {
+    margin-top: 0.8rem !important;
+    margin-bottom: 1rem !important;
+}
+
+.page-eyebrow {
+    display: block;
+    color: #5C7CFA !important;
+    font-size: 0.68rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 1.5px !important;
+    margin-bottom: 5px !important;
+}
+
+/* Fix top clipping of page eyebrow */
+.block-container {
+    padding-top: 3rem !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# =====================================================
+# PAGE HEADER
+# =====================================================
+
 st.markdown(
-    "Manage examinations, enter and correct marks, "
-    "and monitor student and class performance."
+    '<div class="page-eyebrow">WORKSPACE / ACADEMIC PROGRESS TRACKING</div>',
+    unsafe_allow_html=True
 )
+
+col1, col2 = st.columns(
+    [1, 8],
+    gap="small",
+    vertical_alignment="center"
+)
+
+with col1:
+    st.image(
+        str(LOGO_PATH),
+        width=120
+    )
+
+with col2:
+    st.title("Academic Progress Tracking")
+    st.caption(
+        "Manage examinations, enter and correct marks, "
+        "and monitor student and class performance."
+    )
+
 st.divider()
 
 
